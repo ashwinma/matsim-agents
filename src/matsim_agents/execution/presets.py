@@ -95,6 +95,14 @@ PRESETS: dict[str, FacilityPreset] = {
             ),
         ),
         FacilityPreset(
+            name="lux",
+            description="OLCF Lux node: 8x MI355X (gfx950) 288 GB HBM3e, 128 cores",
+            launcher="srun",
+            geometry=NodeGeometry(
+                vendor="rocm", devices_per_node=8, cores_per_node=128, device_memory_gb=288
+            ),
+        ),
+        FacilityPreset(
             name="aurora",
             description="Aurora node in FLAT mode: 12 PVC tiles (64 GB each), 104 cores",
             launcher="mpiexec",
