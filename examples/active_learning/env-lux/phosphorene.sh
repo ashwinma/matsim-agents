@@ -42,6 +42,7 @@ export E3_QE_DEGAUSS_RY=0.005
 # vacuum in both seed cells already clears Max's "at least 15 A, converged
 # by 20 A" bar -- no change needed there.
 export E3_QE_SYSTEM='{}'
+export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false

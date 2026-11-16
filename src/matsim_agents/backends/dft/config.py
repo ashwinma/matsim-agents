@@ -113,6 +113,18 @@ class QEBackendConfig(BaseModel):
         None,
         description="Optional explicit {symbol: filename} mapping (else auto-detected).",
     )
+    hubbard_u: dict[str, float] | None = Field(
+        None,
+        description=(
+            "DFT+U, keyed by '<Species>-<orbital>' label (e.g. {'Fe-3d': 5.3}), "
+            "value in eV. Emits a HUBBARD card natively -- does not require "
+            "pw_template. Mutually exclusive with pw_template."
+        ),
+    )
+    hubbard_projector: str = Field(
+        "atomic",
+        description="HUBBARD card projector type (e.g. 'atomic', 'ortho-atomic').",
+    )
     extra_control: dict[str, Any] = Field(default_factory=dict)
     extra_system: dict[str, Any] = Field(default_factory=dict)
     extra_electrons: dict[str, Any] = Field(default_factory=dict)
@@ -122,6 +134,17 @@ class QEBackendConfig(BaseModel):
     @classmethod
     def _reject_placement(cls, data: Any) -> Any:
         return reject_moved_placement_fields(data, "dft.qe")
+
+    @model_validator(mode="after")
+    def _reject_template_and_hubbard(self) -> "QEBackendConfig":
+        if self.pw_template is not None and self.hubbard_u is not None:
+            raise ValueError(
+                "pw_template and hubbard_u are mutually exclusive: pw_template "
+                "already controls the full namelist (including any HUBBARD "
+                "lines you write into it yourself); hubbard_u is for the "
+                "programmatic writer only."
+            )
+        return self
 
 
 class DFTConfig(BaseModel):

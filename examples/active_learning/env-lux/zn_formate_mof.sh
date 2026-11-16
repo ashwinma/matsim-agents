@@ -35,6 +35,7 @@ export E3_QE_DEGAUSS_RY=0.005
 
 # PBE-D3(BJ) per Max, verbatim.
 export E3_QE_SYSTEM='{vdw_corr: dft-d3, dftd3_version: 4}'
+export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false

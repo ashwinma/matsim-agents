@@ -40,7 +40,15 @@ from benchmarks.e3.profiles import campaign_id, structures_per_round
 
 REPO = Path(__file__).resolve().parents[2]
 E3_STRATEGIES = ("llm_guided_adaptation",)
-OBJECTIVES = REPO / "benchmarks" / "e3" / "scientific-objectives.yaml"
+# Default is the frozen Perlmutter/Copilot protocol file, untouched. Sites
+# without Copilot access (e.g. OLCF Lux) can point this at a site-specific
+# copy via MATSIM_E3_OBJECTIVES_PATH -- its own sha256 is what gets recorded
+# into that run's manifest/policy, so this never silently affects the frozen
+# file's own identity or any run that doesn't set the override.
+OBJECTIVES = Path(
+    os.environ.get("MATSIM_E3_OBJECTIVES_PATH")
+    or str(REPO / "benchmarks" / "e3" / "scientific-objectives.yaml")
+)
 GPU_HOUR_CAP = 768
 GPU_COUNT_PER_NODE = 4
 ARRAY_ELEMENTS = 6

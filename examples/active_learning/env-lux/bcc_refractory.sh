@@ -37,6 +37,7 @@ export E3_QE_DEGAUSS_RY=0.0147
 
 # PBE, no spin, no U -> no SYSTEM overrides needed.
 export E3_QE_SYSTEM='{}'
+export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false

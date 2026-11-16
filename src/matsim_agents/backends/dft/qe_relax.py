@@ -262,6 +262,13 @@ class QESettings:
     nstep: int = 100
     mixing_beta: float = 0.4
     pseudopotentials: dict[str, str] | None = None  # {symbol: filename}
+    # DFT+U (HUBBARD card, QE >= 7.1 syntax). {"Fe-3d": 5.3} -> emits
+    # `HUBBARD {<hubbard_projector>}` then one `U <label> <value_eV>` line per
+    # entry, in insertion order. Mutually exclusive with pw_template (the
+    # template path emits its own HUBBARD lines directly, per whichever study
+    # wrote the template).
+    hubbard_u: dict[str, float] | None = None
+    hubbard_projector: str = "atomic"
     extra_control: dict[str, Any] = field(default_factory=dict)
     extra_system: dict[str, Any] = field(default_factory=dict)
     extra_electrons: dict[str, Any] = field(default_factory=dict)
@@ -431,6 +438,12 @@ def write_pw_input(
     parts.append(_namelist("IONS", ions))
     if cell:
         parts.append(_namelist("CELL", cell))
+
+    if settings.hubbard_u:
+        parts.append(f"HUBBARD {{{settings.hubbard_projector}}}")
+        for label, u_ev in settings.hubbard_u.items():
+            parts.append(f"U {label} {u_ev}")
+        parts.append("")
 
     parts.append("ATOMIC_SPECIES")
     for sym in symbols_unique:

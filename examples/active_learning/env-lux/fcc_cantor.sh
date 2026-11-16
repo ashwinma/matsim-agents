@@ -54,6 +54,7 @@ export E3_QE_DEGAUSS_RY=0.01
 #   Mn: 3.0 / 15 = 0.2
 #   Ni: 0.6 / 18 = 0.0333
 export E3_QE_SYSTEM='{nspin: 2, "starting_magnetization(1)": 0.1765, "starting_magnetization(2)": 0.2143, "starting_magnetization(3)": 0.1875, "starting_magnetization(4)": 0.2, "starting_magnetization(5)": 0.0333}'
+export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false

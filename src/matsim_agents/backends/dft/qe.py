@@ -77,6 +77,9 @@ class QEBackend:
             s.extra_system = {**s.extra_system, **cfg.extra_system}
         if cfg.extra_electrons:
             s.extra_electrons = {**s.extra_electrons, **cfg.extra_electrons}
+        if cfg.hubbard_u:
+            s.hubbard_u = dict(cfg.hubbard_u)
+        s.hubbard_projector = cfg.hubbard_projector
         return s
 
     # ----- run --------------------------------------------------------------

@@ -47,6 +47,11 @@ dft:
     extra_control: {tstress: true, tprnfor: true, calculation: scf}
     extra_system: ${E3_QE_SYSTEM:?set reviewed YAML SYSTEM settings including XC and spin}
     extra_electrons: {conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.3}
+    # DFT+U, native HUBBARD-card support (qe_relax.write_pw_input) -- not a
+    # pw_template. '{}' for materials with no Hubbard U (five of the six);
+    # LiFePO4 sets a real mapping, e.g. '{Fe-3d: 5.3}'.
+    hubbard_u: ${E3_QE_HUBBARD_U:?set '{}' for no Hubbard U, or a YAML mapping like '{Fe-3d: 5.3}'}
+    hubbard_projector: ${E3_QE_HUBBARD_PROJECTOR:-atomic}
     timeout_sec: 1800
 
 trainer:

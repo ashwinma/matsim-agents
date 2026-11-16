@@ -226,8 +226,9 @@ class E3Sampler:
         checkpoint = Path(cfg.mlip.mace.model).resolve()
         model = {"path": str(checkpoint), "sha256": e3._sha256_file(checkpoint)}
         tasks = e3._read_tasks(tasks_path)
-        if len(tasks) != 5000:
-            raise ValueError("Refusing an incomplete 5,000-structure E3 geometry batch")
+        target = e3.structures_per_round()
+        if len(tasks) != target:
+            raise ValueError(f"Refusing an incomplete {target}-structure E3 geometry batch")
         for task in tasks:
             task.update(
                 campaign_variant=VARIANT,
@@ -337,9 +338,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--iteration", type=int)
     parser.add_argument("--iteration-dir", type=Path)
     args = parser.parse_args(argv)
-    profile = os.environ.setdefault("MATSIM_E3_MLIP_STRUCTURES_PER_ROUND", "5000")
-    if profile != "5000":
-        raise ValueError("E3-QE uses the separate 5,000-structure profile")
+    # 5000 is the production target (matches the protocol doc's "up to 5000
+    # generated structures per material/iteration"). MATSIM_E3_MLIP_STRUCTURES_PER_ROUND
+    # may be set to "64" instead to test the full geometry->QE->train loop at
+    # small scale first -- profiles.structures_per_round() enforces this is
+    # one of exactly {64, 5000}, same values the MLIP-only campaign already uses.
+    os.environ.setdefault("MATSIM_E3_MLIP_STRUCTURES_PER_ROUND", "5000")
+    e3.structures_per_round()  # raises early if someone set an invalid value
     cfg = ALConfig.from_yaml(args.config)
     if args.command == "geometry":
         if (
