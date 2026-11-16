@@ -185,15 +185,20 @@ def _parse_pw_out(
             notes_list.append(f"espresso-out parse failed: {exc}")
 
         # Final convergence sanity check: pw.x prints "JOB DONE." on success.
+        # Deliberately not gated on return_code == 0: some MPI launcher builds
+        # (e.g. Open MPI 5.0.10 debug builds on OLCF Lux) exit nonzero after a
+        # fully converged run prints "JOB DONE.", so return_code alone is not a
+        # reliable success signal here. qe_relax.py's parse_pw_stdout already
+        # follows this same precedent for the relax/vc-relax path.
         try:
             with open(stdout_path) as f:
                 tail = f.read()[-4096:]
-            converged = (
-                return_code == 0
-                and energy is not None
-                and forces is not None
-                and "JOB DONE." in tail
-            )
+            converged = energy is not None and forces is not None and "JOB DONE." in tail
+            if converged and return_code != 0:
+                notes_list.append(
+                    f"non-zero return_code ({return_code}) despite JOB DONE. "
+                    "(known launcher quirk, e.g. Lux's Open MPI debug build)"
+                )
             if "convergence NOT achieved" in tail:
                 converged = False
                 notes_list.append("SCF did not converge")
