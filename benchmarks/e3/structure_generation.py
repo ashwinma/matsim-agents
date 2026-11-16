@@ -512,15 +512,15 @@ def _phosphorene(
         directions[:, 2] = 0
         norms = np.linalg.norm(directions, axis=1)
         directions /= np.maximum(norms[:, None], np.finfo(float).tiny)
-        displacements = directions * rng.uniform(0.04, 0.08, (len(atoms), 1))
+        displacements = directions * rng.uniform(0.05, 0.10, (len(atoms), 1))
         displacements -= displacements.mean(axis=0)
         largest = float(np.linalg.norm(displacements, axis=1).max())
-        displacements *= min(1.0, 0.08 / max(largest, np.finfo(float).tiny))
+        displacements *= min(1.0, 0.10 / max(largest, np.finfo(float).tiny))
         atoms.positions += displacements
         operation = {
             "type": "bounded collective in-plane reconstruction",
             "sites": list(range(len(atoms))),
-            "max_displacement_angstrom": 0.08,
+            "max_displacement_angstrom": 0.10,
         }
         if strain is not None:
             _random_strain(atoms, rng, float(strain), dimensions=2)
