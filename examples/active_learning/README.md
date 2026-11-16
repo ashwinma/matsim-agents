@@ -170,6 +170,51 @@ flowchart LR
 > `info["dft_backend"]`; never train one HydraGNN model on a mixed VASP+QE
 > dataset without an explicit per-backend energy offset.
 
+## QE scientific settings (Lux)
+
+Config for the E3-QE/MACE six-material reproduction
+(`e3-qe-mace-three-iteration-reproduction.txt`) on Lux: `e3_qe_mace_lux.yaml`
+(generic) / `e3_qe_mace_lux_lifepo4.yaml` (PBE+U variant) plus six per-material
+"reviewed shell input" files under [`env-lux/`](env-lux/), one per
+`--material`. These settings are **not yet reviewed by Max for final sign-off
+on the numeric values** (see each file's own TODOs) — treat them as a
+reviewable draft, not a cleared-to-run config.
+
+**Pseudopotentials.** SSSP 1.3.0 PBE-efficiency (Materials Cloud, DOI
+10.24435/materialscloud:1r-4m). Point `$SSSP_PSEUDO_DIR` at the fetched UPF
+set — this pass could not locate it on disk under `/lustre/orion/ven136` or
+confirm real per-element filenames, so every `env-lux/*.sh` file uses a
+`<Symbol>.UPF` placeholder; **before any real run, confirm the actual
+filenames and record the SHA-256 of every UPF used in that run's
+`E3_QE_RUN_DIR`** (e.g. `sha256sum "$SSSP_PSEUDO_DIR"/*.UPF >
+"$E3_QE_RUN_DIR"/sssp-sha256.txt`). This recording step is not automated by
+the codebase today.
+
+**Cutoffs.** `ecutwfc_ry`/`ecutrho_ry` in each `env-lux/*.sh` are the max
+SSSP-efficiency-1.3 value (`qe_relax.py`'s `_ECUTWFC_RY` table) over that
+material's real elements, `ecutrho = ecutwfc * 8` — the same rule
+`recommend_settings()` already applies automatically, pinned here explicitly
+per the protocol's own review requirement. **Before a production run**, repeat
+one calculation per material with both cutoffs raised ~20%: forces must
+change by less than 0.01 eV/Å and stress by less than 1 kbar (Max, verbatim).
+Not yet executed for any of the six materials.
+
+**Occupations.** `smearing` for every material (even the nominally-insulating
+ones), per Max's review — overrides `recommend_settings()`'s own
+metallic-only smearing default.
+
+**Summary table** (full detail/derivation in each `env-lux/*.sh` and in
+`pw_lifepo4.template`):
+
+| Material | Smearing | degauss (Ry) | Special | k-mesh | Status |
+|---|---|---|---|---|---|
+| bcc_refractory | m-p | 0.0147 | — | 2×2×2 | Max's explicit value |
+| fcc_cantor | mv | 0.01 | nspin=2, ferromagnetic start | 2×2×2 | **assumed by analogy to bcc_refractory — unconfirmed** |
+| lifepo4 | gaussian (in template) | 0.0037 | PBE+U, Fe 3d, U=5.3 eV, via `pw_template` | 2×4×8 | Max's explicit value |
+| phosphorene | gaussian | 0.005 | — | 7×5×1 | computed from the real seed cell |
+| nb_ta_o | mv | 0.0075 (midpoint of Max's 0.005–0.01) | — | 2×2×2 | **prototype-dependent — placeholder, unverified** |
+| zn_formate_mof | gaussian | 0.005 | PBE-D3(BJ) | 3×2×2 | computed from the real COD 7205949 cell |
+
 ## Variable substitution in config YAMLs
 
 Both example YAMLs use shell-style placeholders that are expanded at load

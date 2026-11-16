@@ -1,0 +1,82 @@
+! pw.in template for the E3-QE/MACE LiFePO4 audit (PBE+U, Fe 3d, U=5.3 eV).
+! Per Max's review: QEBackendConfig cannot yet emit the HUBBARD card, so
+! LiFePO4 (the only one of the six E3 materials needing DFT+U) goes through
+! this pw_template instead of the generated-input path. When pw_template is
+! set, qe.py IGNORES ecutwfc_ry/ecutrho_ry/occupations/smearing/degauss_ry/
+! extra_control/extra_system/extra_electrons from the YAML -- every one of
+! those values must live in this file instead (see
+! examples/active_learning/e3_qe_mace_lux_lifepo4.yaml).
+!
+! Python str.format() slots filled by qe.py:
+!   {nat}        — number of atoms
+!   {natoms}     — alias for {nat}
+!   {ntyp}       — number of atomic species
+!   {pseudo_dir} — absolute path to UPF directory
+!   {prefix}     — pwscf prefix
+!   {outdir}     — scratch dir for wavefunctions/charge
+!
+! The backend AUTO-APPENDS these structure-dependent cards after this file:
+!   ATOMIC_SPECIES, CELL_PARAMETERS angstrom, ATOMIC_POSITIONS angstrom,
+!   K_POINTS automatic   (k-mesh from qe.kpts / qe.koffset in the YAML --
+!   kpts is NOT ignored when pw_template is set; e3_qe_mace_lux_lifepo4.yaml
+!   pins it to [2, 4, 8] for the 112-atom 2x2x1 olivine supercell, per Max).
+!
+! Species are sorted alphabetically by qe.py before this template is filled:
+!   LiFePO4 -> Fe (1), Li (2), O (3), P (4). starting_magnetization(1) below
+!   is therefore Fe's, NOT an arbitrary index -- re-check this ordering if
+!   the formula or backend's species-sorting rule ever changes.
+!
+! Pseudopotentials: SSSP 1.3.0 PBE-efficiency (Materials Cloud, DOI
+! 10.24435/materialscloud:1r-4m). Record the SHA-256 of the Fe/Li/O/P UPFs
+! actually used in E3_QE_RUN_DIR before a real run (not yet automated --
+! see examples/active_learning/README.md "QE scientific settings (Lux)").
+!
+! starting_magnetization(i) in QE is a FRACTION of species i's pseudopotential
+! valence-electron count (Zval), not a raw muB value. Converted below from
+! Max's muB targets (Fe 5 muB, all other species 0.6 muB) using the standard
+! SSSP-efficiency PSlibrary PAW Zval for each element (Fe=16, Li=3, O=6,
+! P=5) -- TODO: confirm these four Zval numbers against the header of the
+! ACTUAL UPF files once sourced (`grep z_valence *.UPF`); they were not
+! re-derived from a located pseudopotential in this pass.
+!   Fe: 5.0   / 16 = 0.3125
+!   Li: 0.6   / 3  = 0.2
+!   O:  0.6   / 6  = 0.1
+!   P:  0.6   / 5  = 0.12
+
+&CONTROL
+  calculation   = 'scf'
+  prefix        = '{prefix}'
+  outdir        = '{outdir}'
+  pseudo_dir    = '{pseudo_dir}'
+  verbosity     = 'high'
+  tprnfor       = .true.
+  tstress       = .true.
+  etot_conv_thr = 1.0d-5
+  forc_conv_thr = 1.0d-4
+  nstep         = 1
+/
+
+&SYSTEM
+  ibrav               = 0
+  nat                 = {nat}
+  ntyp                = {ntyp}
+  ecutwfc             = 90.0
+  ecutrho             = 720.0
+  occupations         = 'smearing'
+  smearing            = 'gaussian'
+  degauss             = 0.0037
+  nspin               = 2
+  starting_magnetization(1) = 0.3125
+  starting_magnetization(2) = 0.2
+  starting_magnetization(3) = 0.1
+  starting_magnetization(4) = 0.12
+/
+
+&ELECTRONS
+  conv_thr         = 1.0d-8
+  mixing_beta      = 0.3
+  electron_maxstep = 150
+/
+
+HUBBARD {{atomic}}
+U Fe-3d 5.3

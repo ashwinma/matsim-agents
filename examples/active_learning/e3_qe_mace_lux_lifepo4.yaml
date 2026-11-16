@@ -1,0 +1,83 @@
+# LiFePO4 variant of e3_qe_mace_lux.yaml -- use only through
+# benchmarks.e3.qe_active_learning --material lifepo4, not `al run`.
+# Per-material inputs and safety gates: e3-qe-mace-three-iteration-reproduction.txt.
+# LiFePO4 is the one E3 material needing PBE+U (Fe 3d, U=5.3 eV), which
+# qe.py's generated-input path cannot emit yet, so this variant routes
+# through dft.qe.pw_template (examples/active_learning/pw_lifepo4.template)
+# per Max's review. All settings below come from that review; nothing here
+# is a fabricated default.
+mlip:
+  backend: mace
+  mace:
+    family: checkpoint
+    model: ${MACE_CHECKPOINT:?set the trusted MACE-OMAT-0 medium checkpoint}
+    device: cuda
+    precision: fp64
+
+# Required by the generic AL schema, but NOT executed by the E3 sampler.
+md:
+  seed_source:
+    kind: compositions
+    compositions: [LiFePO4]
+    n_random: 0
+  n_steps: 0
+
+acquisition:
+  strategy: random
+  n_select: 16
+  diversity_filter: false
+  min_uncertainty_eV_per_A: 0.0
+
+dft:
+  backend: qe
+  qe:
+    pw_bin: ${PW_BIN:?set GPU-enabled pw.x, e.g. the qe/develop_omp5_76omp-lux-tuned module's pw.x}
+    pw_wrapper: ${PROJ_ROOT:?set checkout absolute path}/deployments/lux/launchers/_qe-step-lux.sh
+    pseudo_dir: ${PSEUDO_DIR:?set reviewed UPF directory}
+    pseudopotentials: ${E3_QE_PSEUDOPOTENTIALS:?set a YAML symbol-to-UPF mapping for Fe, Li, O, P}
+    # pw_template set below -> ecutwfc_ry, ecutrho_ry, occupations, smearing,
+    # degauss_ry, extra_control, extra_system, extra_electrons are ALL
+    # IGNORED (QEBackendConfig.pw_template docstring); every one of those
+    # values is instead baked into pw_lifepo4.template.
+    pw_template: ${PROJ_ROOT}/examples/active_learning/pw_lifepo4.template
+    # kpts is NOT ignored when pw_template is set (required explicitly, per
+    # al_config.example.yaml's own comment) -- 2x4x8 for the 112-atom 2x2x1
+    # olivine supercell, per Max.
+    kpts: [2, 4, 8]
+    koffset: [0, 0, 0]
+    timeout_sec: 1800
+
+trainer:
+  enabled: true
+  force_error_trigger_eV_per_A: ${E3_FORCE_ERROR_TOLERANCE:-0.2}
+  train_script: ${PROJ_ROOT}/src/matsim_agents/training/finetune_mace.py
+  finetune_mode: lora
+  start_from: incumbent
+  epochs_per_iter: 2
+  compare_after_training: true
+  validation_fraction: 0
+  validation_set: ${E3_QE_VALIDATION_SET:?set independent QE-labelled held-out extxyz for LiFePO4}
+  validation_reference_set: ${ELEMENTAL_REFERENCE_MANIFEST:?provide DFT-labelled elemental JSON manifest}
+  promote_model: ${E3_QE_PROMOTION_APPROVED:?explicitly set true or false after reviewing the promotion policy}
+  promotion_approved: ${E3_QE_PROMOTION_APPROVED:?explicitly set true or false after reviewing the promotion policy}
+  promotion_min_evaluated_frames: 2
+  promotion_max_energy_mae_eV_per_atom: 0.1
+  promotion_max_force_mae_eV_per_A: 0.2
+  promotion_min_relative_improvement: 0.05
+
+loop:
+  n_iterations: 3
+  max_dft_calculations: 48
+  out_dir: ${E3_QE_RUN_DIR:?set a fresh per-material output directory separate from frozen E3}
+  dataset_format: extxyz
+  resume: true
+  fail_fast: true
+
+# Lux nodes are 8 GPUs each (not Perlmutter's 4) -- NOT yet an approved
+# allocation/budget, same caveat as e3_qe_mace_lux.yaml.
+resources:
+  preset: lux
+  pools:
+    dft: {nodes: 8, devices: 8, max_concurrent: 16, share_with: [training, mlip]}
+    training: {nodes: 1, devices: 1, share_with: [dft, mlip]}
+    mlip: {nodes: 1, devices: 1, share_with: [dft, training]}
