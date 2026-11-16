@@ -53,6 +53,10 @@ class ElementalPhaseSpec(BaseModel):
     qe_magnetic_settings: dict[str, int | float] = Field(default_factory=dict)
     vasp_magnetic_settings: dict[str, str] = Field(default_factory=dict)
     kpts: tuple[int, int, int] | None = None
+    # QE only. None inherits the shared DFT config's hubbard_u; {} runs this phase
+    # without U (e.g. a metal reference beside a PBE+U compound). Part of the
+    # cache identity and recorded in the manifest as method_override.
+    hubbard_u: dict[str, float] | None = None
 
     @model_validator(mode="after")
     def _validate_inputs(self) -> ElementalPhaseSpec:
@@ -224,6 +228,10 @@ def _phase_config(dft: DFTConfig, phase: ElementalPhaseSpec) -> DFTConfig:
         if cfg.qe.pw_template is not None and phase.qe_magnetic_settings:
             raise ValueError("QE template ignores magnetic overrides; use generated inputs")
         cfg.qe.extra_system.update(phase.qe_magnetic_settings)
+        if phase.hubbard_u is not None:
+            if cfg.qe.pw_template is not None:
+                raise ValueError(f"{phase.phase_id}: hubbard_u override requires generated QE inputs")
+            cfg.qe.hubbard_u = dict(phase.hubbard_u) or None
         if phase.kpts is not None:
             cfg.qe.kpts = phase.kpts
         if cfg.qe.pw_template is None and any(
@@ -326,6 +334,8 @@ def _run_reference_relaxation(
             extra_system=dict(qe.extra_system),
             extra_electrons=dict(qe.extra_electrons),
             extra_cell={} if not do_cell else {"cell_dofree": "all"},
+            hubbard_u=dict(qe.hubbard_u) if qe.hubbard_u else None,
+            hubbard_projector=qe.hubbard_projector,
         )
         input_path = work_dir / "pw.in"
         write_pw_input(atoms, settings, str(input_path), outdir=str(work_dir / "tmp"))
@@ -352,7 +362,9 @@ def _run_reference_relaxation(
             result = parse_pw_stdout(str(log_path), return_code=proc.returncode)
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError(f"{phase.phase_id}: QE relaxation timed out in {work_dir}") from exc
-        if not result.converged or result.return_code != 0:
+        # Not gated on return_code: Lux's Open MPI debug build exits nonzero after a
+        # complete run; "JOB DONE." plus the BFGS-converged line is the success signal.
+        if not result.converged or not result.job_done:
             raise RuntimeError(f"{phase.phase_id}: QE relaxation did not converge; see {work_dir}")
         try:
             relaxed = read(log_path, index=-1, format="espresso-out")
@@ -360,6 +372,13 @@ def _run_reference_relaxation(
             raise RuntimeError(
                 f"{phase.phase_id}: QE relaxation has no readable final geometry; see {work_dir}"
             ) from exc
+        if not do_cell:
+            # pw.x held the cell fixed; its printed cell is rounded (alat units), so keep the input's.
+            from ase.calculators.singlepoint import SinglePointCalculator
+
+            results = dict(relaxed.calc.results) if relaxed.calc is not None else {}
+            relaxed.set_cell(atoms.cell.array, scale_atoms=False)
+            relaxed.calc = SinglePointCalculator(relaxed, **results)
         try:
             final_forces = np.asarray(relaxed.get_forces(apply_constraint=False), dtype=float)
         except (RuntimeError, ValueError) as exc:
@@ -815,7 +834,8 @@ def _compute_reference(
             )
             if (
                 not result.converged
-                or result.return_code != 0
+                # QE's converged flag already requires "JOB DONE."; its launcher may exit nonzero
+                or (result.return_code != 0 and cfg.backend != "qe")
                 or result.backend != cfg.backend
                 or result.energy_eV is None
                 or not np.isfinite(result.energy_eV)
@@ -826,18 +846,21 @@ def _compute_reference(
                 )
             if dft_method_signature(cfg, {phase.element}) != signature:
                 raise ValueError("DFT protocol changed during elemental calculation")
+            # pw.out prints cell/positions in alat units with only 4-7 decimals, so a QE
+            # round trip is exact only to ~1e-4 A.
+            geometry_atol = 1e-4 if cfg.backend == "qe" else 1e-6
             if result.final_atoms is not None and (
                 result.final_atoms.get_chemical_symbols() != atoms_for_static.get_chemical_symbols()
                 or not np.allclose(
                     result.final_atoms.positions,
                     atoms_for_static.positions,
-                    atol=1e-6,
+                    atol=geometry_atol,
                     rtol=0,
                 )
                 or not np.allclose(
                     result.final_atoms.cell.array,
                     atoms_for_static.cell.array,
-                    atol=1e-6,
+                    atol=geometry_atol,
                     rtol=0,
                 )
             ):
@@ -889,6 +912,12 @@ def _write_reference_manifest(
             "geometry_status": phase.geometry_status,
             "energy_eV": record.energy_eV,
         }
+        if (
+            dft.backend == "qe"
+            and phase.hubbard_u is not None
+            and phase.hubbard_u != ((dft.qe.hubbard_u if dft.qe else None) or {})
+        ):
+            selected[element]["method_override"] = {"hubbard_u": phase.hubbard_u}
         for candidate, _, result, phase_relaxation, phase_input_digest in candidates:
             audit.append(
                 {

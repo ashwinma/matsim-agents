@@ -44,13 +44,15 @@ dft:
     occupations: ${E3_QE_OCCUPATIONS:?set fixed or smearing after material-specific review}
     smearing: ${E3_QE_SMEARING:-mv}
     degauss_ry: ${E3_QE_DEGAUSS_RY:-0.01}
-    extra_control: {tstress: true, tprnfor: true, calculation: scf}
+    # No `calculation:` key: the QE backend always runs scf for AL labels, and
+    # elemental_dft's relax path rejects a `calculation` override.
+    extra_control: {tstress: true, tprnfor: true}
     extra_system: ${E3_QE_SYSTEM:?set reviewed YAML SYSTEM settings including XC and spin}
     extra_electrons: {conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.3}
     # DFT+U, native HUBBARD-card support (qe_relax.write_pw_input) -- not a
-    # pw_template. '{}' for materials with no Hubbard U (five of the six);
-    # LiFePO4 sets a real mapping, e.g. '{Fe-3d: 5.3}'.
-    hubbard_u: ${E3_QE_HUBBARD_U:?set '{}' for no Hubbard U, or a YAML mapping like '{Fe-3d: 5.3}'}
+    # pw_template. Empty mapping for materials with no Hubbard U (five of the six);
+    # LiFePO4 sets a real mapping (env-lux/lifepo4.sh).
+    hubbard_u: ${E3_QE_HUBBARD_U:?set an empty YAML mapping for no Hubbard U, or a mapping such as Fe-3d to 5.3 for LiFePO4}
     hubbard_projector: ${E3_QE_HUBBARD_PROJECTOR:-atomic}
     timeout_sec: 1800
 

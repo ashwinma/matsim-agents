@@ -194,8 +194,10 @@ def _parse_pw_out(
         # reliable success signal here. qe_relax.py's parse_pw_stdout already
         # follows this same precedent for the relax/vc-relax path.
         try:
-            with open(stdout_path) as f:
-                tail = f.read()[-4096:]
+            # Whole file, not a tail window: Lux's Open MPI debug build appends a long
+            # abort backtrace per rank after "JOB DONE.", pushing it past any fixed tail.
+            with open(stdout_path, errors="replace") as f:
+                tail = f.read()
             converged = energy is not None and forces is not None and "JOB DONE." in tail
             if converged and return_code != 0:
                 notes_list.append(

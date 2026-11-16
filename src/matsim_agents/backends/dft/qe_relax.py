@@ -439,12 +439,6 @@ def write_pw_input(
     if cell:
         parts.append(_namelist("CELL", cell))
 
-    if settings.hubbard_u:
-        parts.append(f"HUBBARD {{{settings.hubbard_projector}}}")
-        for label, u_ev in settings.hubbard_u.items():
-            parts.append(f"U {label} {u_ev}")
-        parts.append("")
-
     parts.append("ATOMIC_SPECIES")
     for sym in symbols_unique:
         mass = _ATOMIC_MASS.get(sym, 1.0)
@@ -460,6 +454,13 @@ def write_pw_input(
     for sym, pos in zip(atoms.get_chemical_symbols(), atoms.get_positions(), strict=True):
         parts.append(f"  {sym}  {pos[0]:18.10f} {pos[1]:18.10f} {pos[2]:18.10f}")
     parts.append("")
+
+    # QE requires ATOMIC_SPECIES (and positions) to precede the HUBBARD card.
+    if settings.hubbard_u:
+        parts.append(f"HUBBARD {{{settings.hubbard_projector}}}")
+        for label, u_ev in settings.hubbard_u.items():
+            parts.append(f"U {label} {u_ev}")
+        parts.append("")
 
     nk = settings.kpts or (1, 1, 1)
     ko = settings.koffset

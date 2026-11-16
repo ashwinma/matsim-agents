@@ -78,6 +78,8 @@ def scientific_dft_payload(cfg: DFTConfig, elements: set[str]) -> dict[str, Any]
         "extra_control": block.extra_control,
         "extra_system": block.extra_system,
         "extra_electrons": block.extra_electrons,
+        "hubbard_u": block.hubbard_u,
+        "hubbard_projector": block.hubbard_projector if block.hubbard_u else None,
     }
 
 
