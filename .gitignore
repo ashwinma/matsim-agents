@@ -182,3 +182,12 @@ docs/paper/main.pdf
 docs/paper.tar.gz
 docs/paper/main.tex.backup-*
 docs/paper/main.tex.orig-backup-*
+
+# E3-MLIP Lux (OLCF) campaign — generated trial/output directories.
+# __pycache__/, *.pyc (via *.py[cod]), and named venvs (.venv-mace/, .venv-uma/,
+# .venv-vllm/, venv/, venv_vllm/, perlmutter_venv/) are already covered above;
+# these add the Lux-specific output convention and any not-yet-named local venvs.
+lux-trial/
+e3-lux-trial/
+.venv-*/
+venv-*/

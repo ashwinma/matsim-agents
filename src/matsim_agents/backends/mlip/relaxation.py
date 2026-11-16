@@ -756,8 +756,16 @@ def _optimize_with_log(
         try:
             started = time.monotonic() if args.max_optimization_seconds is not None else None
             for step in range(args.maxiter):
+                _t_step0 = time.monotonic()
                 previous_positions = atoms.get_positions().copy()
+                _t_optstep0 = time.monotonic()
                 optimizer.step()
+                _t_optstep1 = time.monotonic()
+                if os.environ.get("MATSIM_DEBUG_STEP_TIMING"):
+                    print(
+                        f"[DEBUG step={step} pid={os.getpid()}] optimizer.step()={_t_optstep1 - _t_optstep0:.3f}s",
+                        flush=True,
+                    )
                 steps_taken = step + 1
                 if cell_relax_active:
                     current_cell = atoms.cell.array.copy()
@@ -830,7 +838,9 @@ def _optimize_with_log(
                     else float("nan")
                 )
 
-                traj_writer.write()
+                import os as _os
+                if not _os.environ.get("MATSIM_DEBUG_SKIP_STEP_IO"):
+                    traj_writer.write()
 
                 row = [
                     str(steps_taken),
@@ -850,8 +860,9 @@ def _optimize_with_log(
                         f"{active_stress:.8e}",
                         f"{atoms.get_volume():.8e}",
                     ]
-                csv_file.write(",".join(row) + "\n")
-                csv_file.flush()
+                if not _os.environ.get("MATSIM_DEBUG_SKIP_STEP_IO"):
+                    csv_file.write(",".join(row) + "\n")
+                    csv_file.flush()
 
                 stress_ok = True
                 if args.stress_tolerance_eV_per_A3 is not None:
@@ -878,6 +889,11 @@ def _optimize_with_log(
 
                 prev_max_force = max_force
                 prev_positions = deepcopy(atoms.get_positions())
+                if os.environ.get("MATSIM_DEBUG_STEP_TIMING"):
+                    print(
+                        f"[DEBUG step={step} pid={os.getpid()}] TOTAL step wall={time.monotonic() - _t_step0:.3f}s",
+                        flush=True,
+                    )
                 if (
                     started is not None
                     and time.monotonic() - started >= args.max_optimization_seconds
