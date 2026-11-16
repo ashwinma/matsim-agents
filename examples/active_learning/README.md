@@ -213,11 +213,18 @@ metallic-only smearing default.
 | Material | Smearing | degauss (Ry) | Special | k-mesh | Status |
 |---|---|---|---|---|---|
 | bcc_refractory | m-p | 0.0147 | — | 2×2×2 | Max's explicit value |
-| fcc_cantor | mv | 0.01 | nspin=2, ferromagnetic start (Zval-fraction conversion confirmed from real UPF headers) | 2×2×2 | **k-mesh assumed by analogy to bcc_refractory — unconfirmed** |
+| fcc_cantor | mv | 0.01 | nspin=2, ferromagnetic start (Zval-fraction conversion confirmed from real UPF headers) | 2×2×2 | same reasoning as bcc_refractory: the real frozen VASP reference's own KPOINTS (`research/paper/e4/.../fcc_hea/E4-FCC-0001/KPOINTS`) reads Gamma 2×2×2 |
 | lifepo4 | gaussian (in template) | 0.0037 | PBE+U, Fe 3d, U=5.3 eV, via `pw_template` | 2×4×8 | Max's explicit value |
 | phosphorene | gaussian | 0.005 | — | 7×5×1 | computed from the real seed cell |
-| nb_ta_o | mv | 0.0075 (midpoint of Max's 0.005–0.01) | — | 2×2×2 | **prototype-dependent — placeholder, unverified** |
+| nb_ta_o | mv | 0.0075 (midpoint of Max's 0.005–0.01) | — | 4×8×9 | the AL candidate pool *is* `research/nb-ta-o/pilot/poscars/` (protocol.yaml); every ordering there has a real, policy-documented KPOINTS (gamma-centered, 0.15 Å⁻¹ target spacing), identical across orderings |
 | zn_formate_mof | gaussian | 0.005 | PBE-D3(BJ) | 3×2×2 | computed from the real COD 7205949 cell |
+
+The separate elemental/binary/ternary Nb-Ta-O *reference phases* Max lists
+(Nb/Ta metals, NbO/NbO2/Nb2O5/TaO2/Ta2O5) are a distinct, not-yet-approved
+planning inventory (`research/nb-ta-o/pilot/{elemental,binary,ternary}_reference_inventory.json`)
+used for formation-energy comparisons, not this AL loop's candidate-pool QE
+audits — they still need their own review before any VASP/QE work targets
+them.
 
 ## Variable substitution in config YAMLs
 

@@ -24,14 +24,15 @@ export E3_QE_PSEUDOPOTENTIALS='{Cr: cr_pbe_v1.5.uspp.F.UPF, Mn: mn_pbe_v1.5.uspp
 export E3_QE_ECUTWFC_RY=90.0
 export E3_QE_ECUTRHO_RY=1080.0
 
-# NOT given explicitly by Max (he gave bcc_refractory's mesh only). ASSUMED
-# by direct crystallographic analogy to bcc_refractory's explicit 2x2x2:
-# same tier range {4,8,16,32,64}, similar primitive-cell scale (fcc a=3.6 A
-# vs bcc a=3.0 A, benchmarks/e3/structure_generation.py), same "metallic
-# alloy" treatment. FLAG FOR MAX: this is NOT independently computed from a
-# real supercell geometry (the generator's actual repeat factorization
-# depends on which 4-5 elements/tier the LLM picks that round, so no single
-# fixed cell exists to compute from) -- please confirm or correct.
+# Max said "Gamma-centred 2x2x2 for our VASP supercell" for bcc_refractory --
+# the same logic applies here directly, not by analogy: fcc_cantor's actual
+# frozen VASP reference lives in this repo at
+# research/paper/e4/aurora-dft-scaling/stage1-inputs-v2/fcc_hea/E4-FCC-0001/
+# (benchmarks/e3/protocol.yaml's fcc_cantor.pool.parent_poscar points here),
+# a real 128-atom Co25Cr26Fe26Mn26Ni25 cell (14.304x14.304x7.152 A). That
+# directory's own KPOINTS file literally reads "Gamma / 2 2 2" -- the actual
+# already-used mesh for this exact reference cell, confirmed from disk, not
+# assumed by analogy.
 export E3_QE_KPTS='[2, 2, 2]'
 
 export E3_QE_OCCUPATIONS=smearing

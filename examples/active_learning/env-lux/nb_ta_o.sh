@@ -22,15 +22,24 @@ export E3_QE_PSEUDOPOTENTIALS='{Nb: Nb.pbe-spn-kjpaw_psl.0.3.0.UPF, Ta: Ta_pbe_v
 export E3_QE_ECUTWFC_RY=50.0
 export E3_QE_ECUTRHO_RY=400.0
 
-# NOT determinable from this repo: nb_ta_o structures come from AFLOW
-# prototypes / pyxtal (benchmarks/e3/structure_generation.py), whose actual
-# cell geometry is fetched/generated per-prototype at run time and is not a
-# fixed local seed file like the other five materials -- there is no single
-# representative cell to apply the 30/20 A rule to ahead of time.
-# PLACEHOLDER, matching bcc_refractory/fcc_cantor's floor -- MUST be
-# reviewed per the actual prototype cell once a real run selects one; do not
-# treat this as converged.
-export E3_QE_KPTS='[2, 2, 2]'  # TODO: prototype-dependent, unverified
+# benchmarks/e3/protocol.yaml's nb_ta_o.pool is `kind: poscar_dir, path:
+# research/nb-ta-o/pilot/poscars` -- i.e. the AL candidate pool for this
+# material IS the NbTaO5_ordering_NN.POSCAR set (same supercell, 15 atoms,
+# a=12.73 A / b=5.369 A / c=4.88 A, differing only in Nb/Ta/O ordering).
+# Every ordering already has a real, policy-documented KPOINTS file under
+# research/nb-ta-o/pilot/vasp_inputs/{production-candidates,
+# ordering-family-pending-approval}/NbTaO5_ordering_NN/KPOINTS.json:
+# {"policy": "gamma_centered_target_spacing", "target_spacing_A^-1": 0.15,
+# "mesh_dimensions": [4, 8, 9]}. Checked across orderings 01/05/06/09/12 --
+# identical mesh and cell in every case, so this is a real, already-computed
+# value, not a placeholder. (The separate elemental/binary/ternary reference
+# phases Max also lists -- Nb/Ta metals, NbO/NbO2/Nb2O5/TaO2/Ta2O5 -- are a
+# genuinely separate, not-yet-approved inventory in
+# research/nb-ta-o/pilot/{elemental,binary,ternary}_reference_inventory.json;
+# those are for formation-energy reference calculations, not this AL loop's
+# candidate-pool QE audits, and still need Max's/a reviewer's sign-off
+# before any VASP/QE work is run against them.)
+export E3_QE_KPTS='[4, 8, 9]'
 
 export E3_QE_OCCUPATIONS=smearing
 export E3_QE_SMEARING=mv
