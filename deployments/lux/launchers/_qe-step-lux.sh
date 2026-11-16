@@ -86,33 +86,72 @@ if [[ -n "${MATSIM_ASSIGNED_NODES:-}" ]]; then
 fi
 echo "[qe-step] assigned_nodes=${MATSIM_ASSIGNED_NODES:-scheduler-selected}"
 
-# Slurm picks which GPUs a step receives, so a GPU count alone cannot honour
-# the placement's device indices. When the placement uses only some of the
-# node's GPUs, take them all for the step and expose only the placed ones
-# inside it via ROCR_VISIBLE_DEVICES (same pattern as _qe-step-frontier.sh).
+# qe-gpu-bind (qe/develop_omp5_76omp-lux-tuned) computes its OWN GPU
+# assignment -- ROCR_VISIBLE_DEVICES = local_rank mod QE76_GPUS_PER_NODE
+# (default 8) -- and unconditionally overwrites/unsets any HIP_*/ROCR_*
+# device-mask env vars set before it runs (confirmed by reading
+# $QE76_ROOT/bin/qe-gpu-bind in full). It does NOT accept an explicit
+# device list or offset, so a pre-set ROCR_VISIBLE_DEVICES="${MATSIM_DEVICE_MASK}"
+# (the Frontier-script pattern) is silently discarded. The only lever this
+# tool exposes is QE76_GPUS_PER_NODE, which narrows its modulo to the first
+# N node-local GPU indices (0..N-1) -- it cannot target an arbitrary/offset
+# subset such as "4,5,6,7". We therefore honour MATSIM_DEVICE_MASK /
+# MATSIM_DEVICES_PER_NODE only in the two cases this tool can actually
+# support, and fail loudly rather than silently binding to the wrong GPUs
+# otherwise:
+#   - full node (placement uses every node GPU): --exclusive, QE76_GPUS_PER_NODE
+#     = total node devices (matches qe-gpu-bind's own validated AUSURF112
+#     usage pattern, where the default 8 is correct because the step owns
+#     the whole node).
+#   - zero-based contiguous subset (e.g. "0,1,2,3" out of 8): --overlap +
+#     --gpus-per-node=<subset size>, relying on Slurm/cgroup GRES isolation
+#     to restrict which physical GPUs this step's /sys/class/kfd view
+#     contains, with QE76_GPUS_PER_NODE set to the subset size so
+#     qe-gpu-bind's modulo lands inside it. NOT independently validated on
+#     Lux for a live multi-pool-sharing run -- depends on Slurm's gres/gpu
+#     cgroup enforcement actually narrowing kfd topology visibility per
+#     step, which this pass only confirmed by reading documentation/source,
+#     not by running two overlapping steps on one node.
+# A non-zero-based or non-contiguous mask (e.g. "4,5,6,7") cannot be
+# honoured by this tool at all; such a placement is rejected below instead
+# of silently running on the wrong GPUs.
 STEP_GPUS="${GPUS_PER_NODE}"
-STEP_ENV=()
 STEP_SHARE=(--exclusive)
+STEP_GPU_FLAGS=()
 if [[ -n "${MATSIM_DEVICE_MASK:-}" && -n "${MATSIM_NODE_DEVICES:-}" \
       && "${STEP_GPUS}" != "${MATSIM_NODE_DEVICES}" ]]; then
+  EXPECTED_MASK=$(seq -s, 0 $(( STEP_GPUS - 1 )))
+  if [[ "${MATSIM_DEVICE_MASK}" != "${EXPECTED_MASK}" ]]; then
+    echo "[qe-step] FATAL: MATSIM_DEVICE_MASK=${MATSIM_DEVICE_MASK} is not the zero-based contiguous block (${EXPECTED_MASK}) qe-gpu-bind requires. qe-gpu-bind computes ROCR_VISIBLE_DEVICES = local_rank mod QE76_GPUS_PER_NODE internally and has no device-offset/explicit-list override -- it cannot be pointed at an arbitrary GPU subset. Either give this pool a whole node, a zero-based GPU subset, or ask the qe-gpu-bind maintainer (Quentarius Moore, AMD) for an offset/list option." >&2
+    exit 3
+  fi
   STEP_SHARE=(--overlap)
-  STEP_ENV=(env -u HIP_VISIBLE_DEVICES "ROCR_VISIBLE_DEVICES=${MATSIM_DEVICE_MASK}")
+  STEP_GPU_FLAGS=(--gpus-per-node="${STEP_GPUS}")
 fi
+export QE76_GPUS_PER_NODE="${STEP_GPUS}"
 
 # qe-gpu-bind is REQUIRED for correct GPU dispatch under this module: running
 # pw.x bare under lux-tuned measured 593s vs 43s with the wrapper on a 1-node
 # smoke test (same input/output). --cpu-bind=none + --mpi=pmix are the
 # validated flags for the 1- and 2-node AUSURF112 benchmark; --gpu-bind is
 # deliberately NOT set here, since qe-gpu-bind itself owns GPU binding.
-echo "[qe-step] srun ${STEP_SHARE[*]} -N ${NNODES} --ntasks-per-node=${RANKS_PER_NODE}" \
-  "-c ${THREADS_PER_RANK} --cpu-bind=none --mpi=pmix ${STEP_ENV[*]} qe-gpu-bind ${PW_BIN} -i ${INPUT}"
+#
+# Open MPI 5.0.10 on Lux is a debug build: every converged run we've seen
+# prints "JOB DONE." and writes correct output, then exits 134 from an
+# internal MPI_Finalize check (confirmed in `module show
+# qe/develop_omp5_76omp-lux-tuned`'s help text). This script still execs
+# srun directly and lets pw.x's real exit code (including that 134)
+# propagate untouched, per spec -- callers on Lux must treat "JOB DONE." in
+# the output as the convergence signal, not a zero exit code.
+echo "[qe-step] srun ${STEP_SHARE[*]} ${STEP_GPU_FLAGS[*]} -N ${NNODES} --ntasks-per-node=${RANKS_PER_NODE}" \
+  "-c ${THREADS_PER_RANK} --cpu-bind=none --mpi=pmix qe-gpu-bind ${PW_BIN} -i ${INPUT}"
 exec srun \
   "${STEP_SHARE[@]}" \
+  "${STEP_GPU_FLAGS[@]}" \
   "${NODE_ARGS[@]}" \
   -N "${NNODES}" \
   --ntasks-per-node="${RANKS_PER_NODE}" \
   -c "${THREADS_PER_RANK}" \
   --cpu-bind=none \
   --mpi=pmix \
-  "${STEP_ENV[@]}" \
   qe-gpu-bind "${PW_BIN}" -i "${INPUT}"
