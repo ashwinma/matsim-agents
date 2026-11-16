@@ -6,20 +6,24 @@
 # _ALLOY_ELEMENTS["bcc_refractory"]). PBE, no spin, no U (Max's review).
 
 export PW_BIN="${PW_BIN:?set GPU-enabled pw.x, e.g. pw.x from the qe/develop_omp5_76omp-lux-tuned module}"
-export PSEUDO_DIR="${SSSP_PSEUDO_DIR:?TODO: point at the fetched SSSP 1.3.0 PBE-efficiency UPF dir -- not located on disk in this pass, see README.md}"
+export PSEUDO_DIR="${SSSP_PSEUDO_DIR:-/lustre/orion/ven136/proj-shared/ashwinaji/ai4science/perf-tools/qe-lux/pseudo/sssp-1.3-pbe-efficiency/selected}"
 export E3_QE_RUN_DIR="${E3_QE_LUX_ROOT:?set a Lux QE-study root dir}/e3-qe-lux/bcc_refractory"
 export E3_QE_VALIDATION_SET="${E3_QE_VALIDATION_SET:?provide independent QE-labelled held-out extxyz for bcc_refractory -- not yet prepared}"
 export ELEMENTAL_REFERENCE_MANIFEST="${ELEMENTAL_REFERENCE_MANIFEST:?provide DFT-labelled elemental JSON manifest -- not yet prepared}"
 
-# TODO: confirm exact UPF filenames once $SSSP_PSEUDO_DIR is populated.
-export E3_QE_PSEUDOPOTENTIALS='{Nb: Nb.UPF, Ta: Ta.UPF, V: V.UPF, Hf: Hf.UPF, Zr: Zr.UPF, Ti: Ti.UPF}'
+# Real SSSP 1.3.0 PBE-efficiency UPF filenames, from $PSEUDO_DIR/README.md.
+# SHA-256 of each: see examples/active_learning/env-lux/SSSP-sha256.txt.
+export E3_QE_PSEUDOPOTENTIALS='{Nb: Nb.pbe-spn-kjpaw_psl.0.3.0.UPF, Ta: Ta_pbe_v1.uspp.F.UPF, V: v_pbe_v1.4.uspp.F.UPF, Hf: Hf-sp.oncvpsp.upf, Zr: Zr_pbe_v1.uspp.F.UPF, Ti: ti_pbe_v1.4.uspp.F.UPF}'
 
-# ecutwfc = max over the FULL allowed element set (any subset may appear in a
-# given structure): Nb=40, Ta=45, V=40, Hf=50, Zr=30, Ti=40 Ry
-# (src/matsim_agents/backends/dft/qe_relax.py _ECUTWFC_RY) -> max=50 (Hf).
-# ecutrho = ecutwfc * 8, same convention as recommend_settings().
-export E3_QE_ECUTWFC_RY=50
-export E3_QE_ECUTRHO_RY=400
+# ecutwfc/ecutrho = max over the FULL allowed element set (any subset may
+# appear in a given structure), taken independently per the real SSSP 1.3.0
+# PBE-efficiency table in $PSEUDO_DIR/README.md (NOT the codebase's rounded
+# qe_relax.py _ECUTWFC_RY table, which Max's review asks us to match against
+# the actual SSSP recommendation): Nb 40.0/320.0, Ta 45.0/360.0, V 35.0/280.0,
+# Zr 30.0/240.0, Hf 50.0/200.0, Ti 35.0/280.0 -> max_wfc=50.0 (Hf),
+# max_rho=360.0 (Ta). This exact pair is the README's own worked example.
+export E3_QE_ECUTWFC_RY=50.0
+export E3_QE_ECUTRHO_RY=360.0
 
 # Max, verbatim: "Gamma-centred 2x2x2 k-mesh for our VASP supercell."
 export E3_QE_KPTS='[2, 2, 2]'

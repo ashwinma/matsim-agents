@@ -7,17 +7,20 @@
 # (Max's review).
 
 export PW_BIN="${PW_BIN:?set GPU-enabled pw.x, e.g. pw.x from the qe/develop_omp5_76omp-lux-tuned module}"
-export PSEUDO_DIR="${SSSP_PSEUDO_DIR:?TODO: point at the fetched SSSP 1.3.0 PBE-efficiency UPF dir -- not located on disk in this pass, see README.md}"
+export PSEUDO_DIR="${SSSP_PSEUDO_DIR:-/lustre/orion/ven136/proj-shared/ashwinaji/ai4science/perf-tools/qe-lux/pseudo/sssp-1.3-pbe-efficiency/selected}"
 export E3_QE_RUN_DIR="${E3_QE_LUX_ROOT:?set a Lux QE-study root dir}/e3-qe-lux/zn_formate_mof"
 export E3_QE_VALIDATION_SET="${E3_QE_VALIDATION_SET:?provide independent QE-labelled held-out extxyz for zn_formate_mof -- not yet prepared}"
 export ELEMENTAL_REFERENCE_MANIFEST="${ELEMENTAL_REFERENCE_MANIFEST:?provide DFT-labelled elemental JSON manifest -- not yet prepared}"
 
-# TODO: confirm exact UPF filenames once $SSSP_PSEUDO_DIR is populated.
-export E3_QE_PSEUDOPOTENTIALS='{C: C.UPF, H: H.UPF, O: O.UPF, Zn: Zn.UPF}'
+# Real SSSP 1.3.0 PBE-efficiency UPF filenames, from $PSEUDO_DIR/README.md.
+# SHA-256 of each: see examples/active_learning/env-lux/SSSP-sha256.txt.
+export E3_QE_PSEUDOPOTENTIALS='{C: C.pbe-n-kjpaw_psl.1.0.0.UPF, H: H.pbe-rrkjus_psl.1.0.0.UPF, O: O.pbe-n-kjpaw_psl.0.1.UPF, Zn: Zn_pbe_v1.uspp.F.UPF}'
 
-# ecutwfc = max(C=60, H=60, O=50, Zn=40 Ry, qe_relax.py _ECUTWFC_RY) -> 60.
-export E3_QE_ECUTWFC_RY=60
-export E3_QE_ECUTRHO_RY=480
+# ecutwfc/ecutrho = max(C 45.0/360.0, H 60.0/480.0, O 50.0/400.0,
+# Zn 40.0/320.0 Ry), from the real SSSP 1.3.0 PBE-efficiency table in
+# $PSEUDO_DIR/README.md -> 60.0/480.0 (H).
+export E3_QE_ECUTWFC_RY=60.0
+export E3_QE_ECUTRHO_RY=480.0
 
 # NOT given explicitly by Max ("Gamma-centred k-mesh using the general rule
 # above"). Computed from the real COD 7205949 unit cell (orthorhombic,

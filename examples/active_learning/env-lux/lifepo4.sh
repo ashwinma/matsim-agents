@@ -10,13 +10,14 @@
 # only exports the run/pseudopotential/validation plumbing.
 
 export PW_BIN="${PW_BIN:?set GPU-enabled pw.x, e.g. pw.x from the qe/develop_omp5_76omp-lux-tuned module}"
-export PSEUDO_DIR="${SSSP_PSEUDO_DIR:?TODO: point at the fetched SSSP 1.3.0 PBE-efficiency UPF dir -- not located on disk in this pass, see README.md}"
+export PSEUDO_DIR="${SSSP_PSEUDO_DIR:-/lustre/orion/ven136/proj-shared/ashwinaji/ai4science/perf-tools/qe-lux/pseudo/sssp-1.3-pbe-efficiency/selected}"
 export E3_QE_RUN_DIR="${E3_QE_LUX_ROOT:?set a Lux QE-study root dir}/e3-qe-lux/lifepo4"
 export E3_QE_VALIDATION_SET="${E3_QE_VALIDATION_SET:?provide independent QE-labelled held-out extxyz for lifepo4 -- not yet prepared}"
 export ELEMENTAL_REFERENCE_MANIFEST="${ELEMENTAL_REFERENCE_MANIFEST:?provide DFT-labelled elemental JSON manifest -- not yet prepared}"
 
-# TODO: confirm exact UPF filenames once $SSSP_PSEUDO_DIR is populated.
-export E3_QE_PSEUDOPOTENTIALS='{Fe: Fe.UPF, Li: Li.UPF, O: O.UPF, P: P.UPF}'
+# Real SSSP 1.3.0 PBE-efficiency UPF filenames, from $PSEUDO_DIR/README.md.
+# SHA-256 of each: see examples/active_learning/env-lux/SSSP-sha256.txt.
+export E3_QE_PSEUDOPOTENTIALS='{Fe: Fe.pbe-spn-kjpaw_psl.0.2.1.UPF, Li: li_pbe_v1.4.uspp.F.UPF, O: O.pbe-n-kjpaw_psl.0.1.UPF, P: P.pbe-n-rrkjus_psl.1.0.0.UPF}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false

@@ -1,0 +1,29 @@
+# SHA-256 of the 17 SSSP 1.3.0 PBE-efficiency UPF files used across the six
+# E3-QE/MACE Lux materials (bcc_refractory, fcc_cantor, lifepo4, phosphorene,
+# nb_ta_o, zn_formate_mof). Source directory:
+#   /lustre/orion/ven136/proj-shared/ashwinaji/ai4science/perf-tools/qe-lux/pseudo/sssp-1.3-pbe-efficiency/selected
+# (DOI 10.24435/materialscloud:1r-4m -- see that directory's own README.md
+# for per-element provenance/cutoff detail). Computed directly from the
+# files on disk (`sha256sum *.UPF *.upf`), not fabricated.
+#
+# Before a real E3_QE_RUN_DIR run, re-verify these match
+# `sha256sum "$PSEUDO_DIR"/*.UPF "$PSEUDO_DIR"/*.upf` and copy the matching
+# lines into that run's own output directory.
+
+02cc4b3810e28a43b570277840d9631ca24f634d922928200c047b72c0a86bf5  li_pbe_v1.4.uspp.F.UPF
+2317a0d3b136c09b6263e1ba328b505fb1ebf33bb4b28dc3df9e39af3184ef19  Fe.pbe-spn-kjpaw_psl.0.2.1.UPF
+27f8a7e87851d59a2698237d6ab4578d62950640f4f175781b015a0ce731f962  H.pbe-rrkjus_psl.1.0.0.UPF
+2d112dfec2e2d9b75a971574d9116aa92249988177791659bbcd2ba15f23c20c  P.pbe-n-rrkjus_psl.1.0.0.UPF
+4fc8afef98a911c82908fb9142edf71b2f598dd98762b355a6d291d834fb6d0c  v_pbe_v1.4.uspp.F.UPF
+747afa52fa17dc061e9eff72bcea534e81ffa5a4a5d33af3eb8fc9f1b3aee580  ti_pbe_v1.4.uspp.F.UPF
+7710c776159022cdfa14188f04942712811d9a24ad0e74db5ce7c3bdfb95dbbf  Zn_pbe_v1.uspp.F.UPF
+7c4b6ed541f83d0afdf5c1d3a8c611340f073f3e2b11e95b7963bb2ee26929aa  O.pbe-n-kjpaw_psl.0.1.UPF
+9900d1efd50b9848e31849f39094b33348486b400ee51e0f3922f716137cf3d7  C.pbe-n-kjpaw_psl.1.0.0.UPF
+a5f392a0d35fc78cc9e2ac1636bb1cd02e9b80a063ea368e85be83b0e4523c45  Co_pbe_v1.2.uspp.F.UPF
+c5b6117e22f571895b69dbec8491df6afb2efee1206dad54680881dbd33eb8f0  mn_pbe_v1.5.uspp.F.UPF
+c7449bbfea358d76832cf2f7b43dc89101ead6891806773121bfaa93a140f6de  cr_pbe_v1.5.uspp.F.UPF
+ccf07218ea34daaa63ff57d9f44ca8b4b529728cccbc8f74dd5fc804ac01e48e  Nb.pbe-spn-kjpaw_psl.0.3.0.UPF
+d56e2997788a4b3d90bb829416161ff9eb6ccdfe377cb52acfbdd2175f4b4acf  Zr_pbe_v1.uspp.F.UPF
+e0850b94d7007d47691d131db1fa5ffdaaa6f6a573c1ebf1fb425e46ed891ee1  Ta_pbe_v1.uspp.F.UPF
+f019947b40f1831f9bd44a630e9445a07c1e864ce81f0ac6286035a1e0c2080b  Hf-sp.oncvpsp.upf
+f76b86ce60cde3d83dfcc8df79ba05478db573d158289f1b226919442d977d25  ni_pbe_v1.4.uspp.F.UPF
