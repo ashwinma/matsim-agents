@@ -46,3 +46,6 @@ export E3_QE_PROMOTION_APPROVED=false
 # 29 of 32 validation frames needed mixing_beta 0.1 / mixing_ndim 12 (beta 0.3 diverged or stalled on 6 of 9 tried).
 export E3_QE_EXTRA_ELECTRONS='{conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.1, mixing_ndim: 12}'
 export E3_QE_TIMEOUT_SEC=7200   # 128-atom frames took up to 25 min
+
+# PILOT-ONLY (Max, 2026-11-17): the loose SCF settings above are accepted for the 64-structure pilot but do NOT yield
+# production-quality labels; qualify against tighter references before production. See PILOT-STATUS.md.

@@ -42,3 +42,6 @@ export E3_QE_PROMOTION_APPROVED=false
 
 # Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
 export E3_QE_EXTRA_ELECTRONS='{conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.3}'
+
+# PILOT-ONLY (Max, 2026-11-17): this k-mesh is a reasonable starting point; verify convergence (energies and forces) and move to a
+# cell-size-scaled mesh before production. See PILOT-STATUS.md.

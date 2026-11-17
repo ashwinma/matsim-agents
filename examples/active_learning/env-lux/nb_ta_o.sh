@@ -55,3 +55,5 @@ export E3_QE_PROMOTION_APPROVED=false
 
 # Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
 export E3_QE_EXTRA_ELECTRONS='{conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.3}'
+
+# OPEN (Max): k-mesh should scale with cell size (constant reciprocal-space density); this fixed mesh came from the 15-atom pilot cell. See PILOT-STATUS.md.

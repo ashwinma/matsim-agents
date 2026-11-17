@@ -49,3 +49,9 @@ export E3_QE_PROMOTION_APPROVED=false
 # (28-atom check: rms dF 0.03, max 0.14 eV/A).
 export E3_QE_EXTRA_ELECTRONS='{conv_thr: 2.0e-3, electron_maxstep: 150, mixing_beta: 0.3}'
 export E3_QE_TIMEOUT_SEC=14400  # 112-atom frames took 1.6-2.4 h
+
+# PILOT-ONLY (Max, 2026-11-17): the loose SCF settings above are accepted for the 64-structure pilot but do NOT yield
+# production-quality labels; qualify against tighter references before production. See PILOT-STATUS.md.
+
+# PILOT-ONLY (Max): ferromagnetic start is an approximation, not a ground-state claim; AFM/alternative spin states and the
+# final magnetic moments are still to be recorded. See PILOT-STATUS.md.

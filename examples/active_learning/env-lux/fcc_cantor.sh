@@ -64,3 +64,9 @@ export E3_QE_PROMOTION_APPROVED=false
 # conv_thr 5e-3 is a LOOSE label threshold awaiting Max's approval.
 export E3_QE_EXTRA_ELECTRONS='{conv_thr: 5.0e-3, electron_maxstep: 300, mixing_beta: 0.1, mixing_ndim: 12}'
 export E3_QE_TIMEOUT_SEC=14400  # observed 46 min - 2.6 h per frame
+
+# PILOT-ONLY (Max, 2026-11-17): the loose SCF settings above are accepted for the 64-structure pilot but do NOT yield
+# production-quality labels; qualify against tighter references before production. See PILOT-STATUS.md.
+
+# PILOT-ONLY (Max): ferromagnetic start is an approximation, not a ground-state claim; AFM/alternative spin states and the
+# final magnetic moments are still to be recorded. See PILOT-STATUS.md.
