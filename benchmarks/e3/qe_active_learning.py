@@ -364,7 +364,7 @@ def main(argv: list[str] | None = None) -> int:
     policy = {
         "campaign_variant": VARIANT,
         "material": args.material,
-        "max_structures_per_iteration": 5000,
+        "max_structures_per_iteration": e3.structures_per_round(),
         "al_config": cfg.model_dump(mode="json"),
         "dft_input_identities": scientific_dft_payload(
             cfg.dft, set(cfg.dft.qe.pseudopotentials or {})
