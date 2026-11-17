@@ -74,7 +74,7 @@ trainer:
   promotion_approved: ${E3_QE_PROMOTION_APPROVED:?explicitly set true or false after reviewing the promotion policy}
   promotion_min_evaluated_frames: 2
   promotion_max_energy_mae_eV_per_atom: 0.1
-  promotion_max_force_mae_eV_per_A: 0.2
+  promotion_max_force_mae_eV_per_A: 0.02  # Max (2026-11-17): promotion gate on force MAE; do not relax for looser SCF
   promotion_min_relative_improvement: 0.05
 
 loop:
