@@ -182,8 +182,9 @@ def _base_structures(material: str):
         b, u = read(seeds / "phosphorene_black_P.extxyz"), read(seeds / "phosphorene_blue_P.extxyz")
         return [b, u, b.repeat((2, 2, 1)), u.repeat((3, 2, 1))]
     if material == "zn_formate_mof":
-        return [read(seeds / "zn_formate_alpha.extxyz"), read(seeds / "zn_formate_beta.extxyz"),
-                read(seeds / "zn_formate_cod_7205949.cif")]
+        # COD 7205949 only: it is the pool the E3 pipeline uses and the only Zn-formate
+        # seed with hydrogen (the alpha/beta extxyz seeds are C8O8Zn4, no H).
+        return [read(seeds / "zn_formate_cod_7205949.cif")]
     raise ValueError(material)
 
 
@@ -218,6 +219,10 @@ def cmd_validation(args):
 
     dft = load_dft(Path(args.config))
     dft.qe.timeout_sec = args.timeout_sec
+    if args.extra_electrons:
+        dft.qe.extra_electrons = {**dft.qe.extra_electrons, **json.loads(args.extra_electrons)}
+    if args.hubbard_projector:
+        dft.qe.hubbard_projector = args.hubbard_projector
     if args.hubbard_off:
         dft.qe.hubbard_u = None  # diagnostic only; never used for the delivered sets
     backend = make_backend(dft)
@@ -298,6 +303,8 @@ def main():
     ap.add_argument("--timeout-sec", type=int, default=14400)
     ap.add_argument("--fe-with-u", action="store_true")
     ap.add_argument("--hubbard-off", action="store_true")
+    ap.add_argument("--hubbard-projector")
+    ap.add_argument("--extra-electrons", help="JSON merged into dft.qe.extra_electrons (diagnostics)")
     args = ap.parse_args()
     if args.cmd == "plan":
         return cmd_plan(args)
