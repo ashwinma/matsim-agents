@@ -227,6 +227,8 @@ def cmd_validation(args):
         dft.qe.hubbard_projector = args.hubbard_projector
     if args.hubbard_off:
         dft.qe.hubbard_u = None  # diagnostic only; never used for the delivered sets
+    if (dft.qe.kpts is None) == (dft.qe.kpoint_spacing_inv_A is None):
+        raise SystemExit("validation needs exactly one of dft.qe.kpts / kpoint_spacing_inv_A (source env-lux/kdensity.sh or set E3_QE_KPTS)")
     backend = make_backend(dft)
     pool = placement_for(args.nodes, args.nodes_per_job)
     frames = build_frames(args.material, args.n_frames, args.max_atoms)
