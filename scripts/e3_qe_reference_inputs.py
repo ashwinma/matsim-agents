@@ -221,6 +221,8 @@ def cmd_validation(args):
     dft.qe.timeout_sec = args.timeout_sec
     if args.extra_electrons:
         dft.qe.extra_electrons = {**dft.qe.extra_electrons, **json.loads(args.extra_electrons)}
+    if args.extra_system:
+        dft.qe.extra_system = {**dft.qe.extra_system, **json.loads(args.extra_system)}
     if args.hubbard_projector:
         dft.qe.hubbard_projector = args.hubbard_projector
     if args.hubbard_off:
@@ -228,6 +230,7 @@ def cmd_validation(args):
     backend = make_backend(dft)
     pool = placement_for(args.nodes, args.nodes_per_job)
     frames = build_frames(args.material, args.n_frames, args.max_atoms)
+    indices = [int(x) for x in args.only.split(",")] if args.only else list(range(len(frames)))
     root = Path(args.out) / "validation" / args.material
     (root / "frames").mkdir(parents=True, exist_ok=True)
     free = queue.Queue()
@@ -259,7 +262,7 @@ def cmd_validation(args):
             free.put(launch)
 
     with ThreadPoolExecutor(max_workers=len(pool.launches)) as ex:
-        for i, rec in ex.map(run, range(len(frames))):
+        for i, rec in ex.map(run, indices):
             results[i] = rec
     good = [i for i in sorted(results) if results[i]["converged"]]
     out_frames = []
@@ -286,7 +289,7 @@ def cmd_validation(args):
         element_method_signatures={e: dft_method_signature(dft, {e}) for e in sorted(elements)},
         split_role="validation")
     print(f"WROTE {target} frames={len(out_frames)}/{len(frames)} failed={[i for i in results if not results[i]['converged']]}")
-    return 0 if len(out_frames) == len(frames) else 1
+    return 0 if len(out_frames) == len(indices) else 1
 
 
 def main():
@@ -303,6 +306,8 @@ def main():
     ap.add_argument("--timeout-sec", type=int, default=14400)
     ap.add_argument("--fe-with-u", action="store_true")
     ap.add_argument("--hubbard-off", action="store_true")
+    ap.add_argument("--only", help="comma-separated frame indices (diagnostics / extra-parallel jobs)")
+    ap.add_argument("--extra-system", help="JSON merged into dft.qe.extra_system (diagnostics)")
     ap.add_argument("--hubbard-projector")
     ap.add_argument("--extra-electrons", help="JSON merged into dft.qe.extra_electrons (diagnostics)")
     args = ap.parse_args()
