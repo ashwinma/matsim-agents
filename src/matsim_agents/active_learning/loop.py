@@ -493,6 +493,10 @@ def _append_labelled_frames(
         existing_frames=existing_frames + external_validation_frames,
         expected_atomic_numbers=expected_atomic_numbers,
     )
+    if external_validation_frames:
+        from matsim_agents.datasets.parent_leakage import check_parent_leakage
+
+        check_parent_leakage(frames, cfg.trainer.validation_set)
     training_frames, validation_frames = _split_training_validation_frames(
         frames,
         validation_fraction=cfg.trainer.validation_fraction,
