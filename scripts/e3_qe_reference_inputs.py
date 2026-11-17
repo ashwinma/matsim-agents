@@ -277,6 +277,12 @@ def cmd_validation(args):
             a.info["stress"] = s
         a.info["dft_backend"] = "qe"
         a.info["source_work_dir"] = str(wd)
+        if dft.qe.kpoint_spacing_inv_A is not None:
+            from matsim_agents.backends.dft.qe_relax import kmesh_from_spacing
+            a.info["kpoint_mesh"] = " ".join(map(str, kmesh_from_spacing(a.cell, dft.qe.kpoint_spacing_inv_A)))
+            a.info["kpoint_spacing_inv_A"] = " ".join(map(str, dft.qe.kpoint_spacing_inv_A))
+        else:
+            a.info["kpoint_mesh"] = " ".join(map(str, dft.qe.kpts))
         out_frames.append(a)
     target = Path(args.out) / f"validation-{args.material}.extxyz"
     write(target, out_frames, format="extxyz")

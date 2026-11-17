@@ -50,9 +50,11 @@ def validate_config(cfg: ALConfig, material: str) -> None:
     qe = cfg.dft.qe
     if not qe.pw_bin.is_file() or not qe.pw_wrapper.is_file():
         raise ValueError("QE executable and wrapper must exist before approving a campaign")
-    for field in ("ecutwfc_ry", "ecutrho_ry", "kpts", "occupations", "pseudopotentials"):
+    for field in ("ecutwfc_ry", "ecutrho_ry", "occupations", "pseudopotentials"):
         if getattr(qe, field) is None:
             raise ValueError(f"E3-QE requires reviewed, explicit dft.qe.{field}")
+    if (qe.kpts is None) == (qe.kpoint_spacing_inv_A is None):
+        raise ValueError("E3-QE requires exactly one of dft.qe.kpts or dft.qe.kpoint_spacing_inv_A")
     elements = {
         symbol
         for action in e3._action_space(material)

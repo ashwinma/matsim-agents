@@ -58,7 +58,7 @@ def scientific_dft_payload(cfg: DFTConfig, elements: set[str]) -> dict[str, Any]
     pseudopotentials = block.pseudopotentials or resolve_pseudopotentials(
         sorted(elements), str(block.pseudo_dir)
     )
-    return {
+    payload: dict[str, Any] = {
         "backend": "qe",
         "executable": path_identity(block.pw_bin),
         "pseudopotential_files": {
@@ -81,6 +81,9 @@ def scientific_dft_payload(cfg: DFTConfig, elements: set[str]) -> dict[str, Any]
         "hubbard_u": block.hubbard_u,
         "hubbard_projector": block.hubbard_projector if block.hubbard_u else None,
     }
+    if block.kpoint_spacing_inv_A is not None:
+        payload["kpoint_spacing_inv_A"] = list(block.kpoint_spacing_inv_A)
+    return payload
 
 
 def dft_method_signature(cfg: DFTConfig, elements: set[str]) -> str:

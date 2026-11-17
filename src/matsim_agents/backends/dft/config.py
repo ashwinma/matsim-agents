@@ -105,6 +105,16 @@ class QEBackendConfig(BaseModel):
     ecutwfc_ry: float | None = None
     ecutrho_ry: float | None = None
     kpts: tuple[int, int, int] | None = None
+    kpoint_spacing_inv_A: tuple[float, float, float] | None = Field(
+        None,
+        description=(
+            "Per-axis reciprocal-space spacing in 1/A (2*pi included, so a mesh of n points along "
+            "an axis with reciprocal-vector length |b| (no 2*pi) has spacing 2*pi*|b|/n). When set, each "
+            "structure gets n_i = max(1, round(2*pi*|b_i| / spacing_i)), keeping sampling density "
+            "constant across cell sizes. A spacing <= 0 forces a single k-point on that axis "
+            "(Gamma-only, e.g. a vacuum direction). Mutually exclusive with kpts."
+        ),
+    )
     koffset: tuple[int, int, int] | None = None
     occupations: Literal["smearing", "fixed", "tetrahedra"] | None = None
     smearing: str = "gaussian"
@@ -144,6 +154,8 @@ class QEBackendConfig(BaseModel):
                 "lines you write into it yourself); hubbard_u is for the "
                 "programmatic writer only."
             )
+        if self.kpts is not None and self.kpoint_spacing_inv_A is not None:
+            raise ValueError("kpts and kpoint_spacing_inv_A are mutually exclusive")
         return self
 
 

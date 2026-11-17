@@ -39,7 +39,9 @@ dft:
     pseudopotentials: ${E3_QE_PSEUDOPOTENTIALS:?set a YAML symbol-to-UPF mapping for this material}
     ecutwfc_ry: ${E3_QE_ECUTWFC_RY:?set converged wavefunction cutoff in Ry}
     ecutrho_ry: ${E3_QE_ECUTRHO_RY:?set converged density cutoff in Ry}
-    kpts: ${E3_QE_KPTS:?set a reviewed YAML k-mesh such as [2,2,2]}
+    # Exactly one of kpts / kpoint_spacing_inv_A (validate_config enforces it). Density mode: source env-lux/kdensity.sh.
+    kpts: ${E3_QE_KPTS:-null}
+    kpoint_spacing_inv_A: ${E3_QE_KPOINT_SPACING:-null}
     koffset: [0, 0, 0]
     occupations: ${E3_QE_OCCUPATIONS:?set fixed or smearing after material-specific review}
     smearing: ${E3_QE_SMEARING:-mv}

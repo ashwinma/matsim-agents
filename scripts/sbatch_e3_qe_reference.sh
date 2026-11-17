@@ -17,6 +17,8 @@ mkdir -p /tmp/e3placeholders && : > /tmp/e3placeholders/val.extxyz && echo '{}' 
 export E3_QE_VALIDATION_SET=/tmp/e3placeholders/val.extxyz ELEMENTAL_REFERENCE_MANIFEST=/tmp/e3placeholders/el.json
 # shellcheck disable=SC1090
 source "$PROJ_ROOT/examples/active_learning/env-lux/$MATERIAL.sh"
+# KDENSITY=1: constant-density k-mesh instead of the fixed E3_QE_KPTS mesh
+if [ "${KDENSITY:-0}" = "1" ]; then source "$PROJ_ROOT/examples/active_learning/env-lux/kdensity.sh" "$MATERIAL"; fi
 export PYTHONPATH="$PROJ_ROOT/src:$PROJ_ROOT"
 NODES="${SLURM_JOB_NUM_NODES:-1}"
 exec "$ROOT/e3-qe-lux-inputs/env/venv-host/bin/python" "$PROJ_ROOT/scripts/e3_qe_reference_inputs.py" "$CMD" \

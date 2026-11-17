@@ -361,6 +361,26 @@ def resolve_pseudopotentials(symbols: list[str], pseudo_dir: str) -> dict[str, s
 # --------------------------------------------------------------------------- #
 
 
+def kmesh_from_spacing(cell, spacing) -> tuple[int, int, int]:
+    """Constant-density k-mesh: n_i = max(1, round(2*pi*|b_i| / spacing_i)).
+
+    ``b_i`` are the reciprocal-lattice vectors without the 2*pi factor, so the
+    result depends on the actual cell (including non-orthogonal ones). A
+    spacing <= 0 gives a single k-point along that axis. Rounding is to the
+    nearest integer (not ceil) so a +-1 % strain or rattle of a cell never
+    changes the mesh by a whole point at an exact boundary.
+    """
+    import math
+
+    import numpy as np
+
+    b = np.linalg.norm(np.asarray(cell.reciprocal() if hasattr(cell, "reciprocal") else np.linalg.inv(cell).T), axis=1)
+    out = []
+    for length, s_i in zip(b, spacing, strict=True):
+        out.append(1 if s_i <= 0 else max(1, math.floor(2.0 * math.pi * float(length) / float(s_i) + 0.5)))
+    return (out[0], out[1], out[2])
+
+
 def write_pw_input(
     atoms,
     settings: QESettings,

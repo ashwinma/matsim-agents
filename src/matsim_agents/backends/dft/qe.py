@@ -29,6 +29,7 @@ from ase.io import read as ase_read
 from matsim_agents.backends.dft.base import DFTJobSpec, DFTResult
 from matsim_agents.backends.dft.qe_relax import (
     QESettings,
+    kmesh_from_spacing,
     recommend_settings,
     write_pw_input,
 )
@@ -63,6 +64,8 @@ class QEBackend:
             s.ecutrho_ry = cfg.ecutrho_ry
         if cfg.kpts is not None:
             s.kpts = tuple(cfg.kpts)  # type: ignore[assignment]
+        elif cfg.kpoint_spacing_inv_A is not None:
+            s.kpts = kmesh_from_spacing(atoms.cell, cfg.kpoint_spacing_inv_A)
         if cfg.koffset is not None:
             s.koffset = tuple(cfg.koffset)  # type: ignore[assignment]
         if cfg.occupations is not None:
@@ -95,7 +98,13 @@ class QEBackend:
                 template_path=cfg.pw_template,
                 atoms=spec.atoms,
                 pseudo_dir=str(cfg.pseudo_dir),
-                kpts=tuple(cfg.kpts) if cfg.kpts is not None else (1, 1, 1),
+                kpts=(
+                    tuple(cfg.kpts)
+                    if cfg.kpts is not None
+                    else kmesh_from_spacing(spec.atoms.cell, cfg.kpoint_spacing_inv_A)
+                    if cfg.kpoint_spacing_inv_A is not None
+                    else (1, 1, 1)
+                ),
                 koffset=tuple(cfg.koffset) if cfg.koffset is not None else (0, 0, 0),
                 pseudopotentials=dict(cfg.pseudopotentials) if cfg.pseudopotentials else None,
                 input_path=input_path,
