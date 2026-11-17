@@ -50,9 +50,14 @@ OBJECTIVES = Path(
     or str(REPO / "benchmarks" / "e3" / "scientific-objectives.yaml")
 )
 GPU_HOUR_CAP = 768
-GPU_COUNT_PER_NODE = 4
+# Default 4 (Perlmutter A100 nodes): unchanged frozen behaviour. Sites with other
+# GPU counts (e.g. Lux, 8 per node) set MATSIM_E3_GPUS_PER_NODE; the 64-worker
+# requirement is kept, so nodes per material become 64 // GPUs-per-node.
+GPU_COUNT_PER_NODE = int(os.environ.get("MATSIM_E3_GPUS_PER_NODE", "4"))
+if 64 % GPU_COUNT_PER_NODE:
+    raise ValueError("MATSIM_E3_GPUS_PER_NODE must divide the 64 required workers")
 ARRAY_ELEMENTS = 6
-NODES_PER_ARRAY_ELEMENT = 16
+NODES_PER_ARRAY_ELEMENT = 64 // GPU_COUNT_PER_NODE
 WORKERS_PER_ARRAY_ELEMENT = GPU_COUNT_PER_NODE * NODES_PER_ARRAY_ELEMENT
 WALLTIME_SECONDS_PER_ELEMENT = 2 * 3600
 ROUND_SECONDS = 30 * 60
