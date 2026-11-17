@@ -43,3 +43,9 @@ export E3_QE_HUBBARD_PROJECTOR=atomic
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false
+
+# Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
+# Lux GPU pw.x plateaus near 1e-3..2e-3 Ry on 112-atom PBE+U cells; conv_thr 2e-3 is a LOOSE label threshold awaiting Max's approval
+# (28-atom check: rms dF 0.03, max 0.14 eV/A).
+export E3_QE_EXTRA_ELECTRONS='{conv_thr: 2.0e-3, electron_maxstep: 150, mixing_beta: 0.3}'
+export E3_QE_TIMEOUT_SEC=14400  # 112-atom frames took 1.6-2.4 h

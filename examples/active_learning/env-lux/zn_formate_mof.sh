@@ -39,3 +39,6 @@ export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false
+
+# Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
+export E3_QE_EXTRA_ELECTRONS='{conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.3}'

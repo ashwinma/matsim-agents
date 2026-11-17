@@ -41,3 +41,8 @@ export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false
+
+# Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
+# 29 of 32 validation frames needed mixing_beta 0.1 / mixing_ndim 12 (beta 0.3 diverged or stalled on 6 of 9 tried).
+export E3_QE_EXTRA_ELECTRONS='{conv_thr: 1.0e-8, electron_maxstep: 150, mixing_beta: 0.1, mixing_ndim: 12}'
+export E3_QE_TIMEOUT_SEC=7200   # 128-atom frames took up to 25 min

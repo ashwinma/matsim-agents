@@ -370,6 +370,10 @@ def main(argv: list[str] | None = None) -> int:
             cfg.dft, set(cfg.dft.qe.pseudopotentials or {})
         ),
         "dft_wrapper_identity": path_identity(cfg.dft.qe.pw_wrapper),
+        # dft_input_identities already holds each UPF's sha256 and hubbard_u/projector;
+        # this adds the library provenance (SSSP version/source live in its README).
+        "pseudopotential_library_readme": path_identity(cfg.dft.qe.pseudo_dir / "README.md"),
+        "hubbard": {"u_eV": cfg.dft.qe.hubbard_u, "projector": cfg.dft.qe.hubbard_projector},
         "validation_identity": path_identity(cfg.trainer.validation_set),
         "elemental_reference_identity": path_identity(cfg.trainer.validation_reference_set),
         "objectives_identity": path_identity(e3.OBJECTIVES),

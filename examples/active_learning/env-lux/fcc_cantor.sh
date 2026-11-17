@@ -58,3 +58,9 @@ export E3_QE_HUBBARD_U='{}'
 
 export E3_FORCE_ERROR_TOLERANCE=0.2
 export E3_QE_PROMOTION_APPROVED=false
+
+# Per-label SCF settings and timeout (read by e3_qe_mace_lux.yaml).
+# beta 0.3 diverged on this magnetic 128-atom alloy; beta 0.1 reaches a 3e-4..1e-2 Ry floor on the Lux GPU pw.x build.
+# conv_thr 5e-3 is a LOOSE label threshold awaiting Max's approval.
+export E3_QE_EXTRA_ELECTRONS='{conv_thr: 5.0e-3, electron_maxstep: 300, mixing_beta: 0.1, mixing_ndim: 12}'
+export E3_QE_TIMEOUT_SEC=14400  # observed 46 min - 2.6 h per frame
