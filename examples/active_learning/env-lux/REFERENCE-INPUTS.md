@@ -44,3 +44,9 @@ the pw.x GPU build.
 LiFePO4 112-atom frames need ~1 h SCF + ~1 h forces/stress; frames were run with 9000-15000 s timeouts
 (the e3-qe yaml's `timeout_sec: 1800` is far too small for them and for the 128-atom cells). Two Lux nodes ran
 ~10x slower than the rest (Zn-formate f0024, LiFePO4 f0001); those frames were rerun on other nodes.
+
+## Final status
+
+All six `validation-<material>.extxyz` sets have 32/32 converged frames and all six per-material elemental manifests exist;
+`env/check-material.sh <material>` (CPU-only `qe_active_learning check`) passes for all six. About 350 node-hours used
+in total, including diagnostics and superseded attempts (peak ~100 nodes). Elemental references for Fe/Mn/Cr are FM-start only (see table).
