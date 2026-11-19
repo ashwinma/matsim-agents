@@ -44,6 +44,13 @@ GPUS_PER_NODE="${MATSIM_DEVICES_PER_NODE:-$RANKS_PER_NODE}"
 [[ -x "${PW_BIN}"   ]] || { echo "pw.x not executable: ${PW_BIN}" >&2; exit 2; }
 [[ -f "${INPUT}"    ]] || { echo "input file missing: ${INPUT}" >&2; exit 2; }
 
+# Container mode: the AL driver may run inside an Apptainer image (Lux: ROCm torch lives only in the
+# image) with the host srun bound in. Modules and qe-gpu-bind then belong to the compute-node host, not
+# the image, so they are loaded by _qe-host-step-lux.sh inside the srun step instead of here.
+IN_CONTAINER=0
+if [[ -n "${APPTAINER_CONTAINER:-}${SINGULARITY_CONTAINER:-}" ]]; then IN_CONTAINER=1; fi
+
+if [[ "${IN_CONTAINER}" == 0 ]]; then
 # ── Module load for the QE build's toolchain ────────────────────────────────
 # Lux is a plain Lmod system, not Cray PE: no `module reset`/PrgEnv swap
 # needed, just load the dependency chain the lux-tuned module was built
@@ -64,6 +71,7 @@ command -v qe-gpu-bind >/dev/null 2>&1 || {
   echo "qe-gpu-bind not found on PATH after loading ${QE_MODULE:-qe/develop_omp5_76omp-lux-tuned}" >&2
   exit 2
 }
+fi
 
 # Strip env vars set by the Python venv/Apptainer env that would perturb the
 # QE launch (same rationale as _qe-step-perlmutter.sh / _qe-step-frontier.sh).
@@ -143,6 +151,23 @@ export QE76_GPUS_PER_NODE="${STEP_GPUS}"
 # srun directly and lets pw.x's real exit code (including that 134)
 # propagate untouched, per spec -- callers on Lux must treat "JOB DONE." in
 # the output as the convergence signal, not a zero exit code.
+if [[ "${IN_CONTAINER}" == 1 ]]; then
+  HOST_STEP="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_qe-host-step-lux.sh"
+  echo "[qe-step] (container) srun ${STEP_SHARE[*]} ${STEP_GPU_FLAGS[*]} -N ${NNODES} --ntasks-per-node=${RANKS_PER_NODE}" \
+    "-c ${THREADS_PER_RANK} --export=NONE ${HOST_STEP} ${PW_BIN} ${INPUT}"
+  exec srun \
+    "${STEP_SHARE[@]}" \
+    "${STEP_GPU_FLAGS[@]}" \
+    "${NODE_ARGS[@]}" \
+    -N "${NNODES}" \
+    --ntasks-per-node="${RANKS_PER_NODE}" \
+    -c "${THREADS_PER_RANK}" \
+    --cpu-bind=none \
+    --mpi=pmix \
+    --export=NONE \
+    /bin/bash "${HOST_STEP}" "${PW_BIN}" "${INPUT}" "${WORK_DIR}" "${THREADS_PER_RANK}" "${QE76_GPUS_PER_NODE}"
+fi
+
 echo "[qe-step] srun ${STEP_SHARE[*]} ${STEP_GPU_FLAGS[*]} -N ${NNODES} --ntasks-per-node=${RANKS_PER_NODE}" \
   "-c ${THREADS_PER_RANK} --cpu-bind=none --mpi=pmix qe-gpu-bind ${PW_BIN} -i ${INPUT}"
 exec srun \

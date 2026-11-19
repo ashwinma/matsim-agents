@@ -251,7 +251,9 @@ class E3Sampler:
             round_dir,
             e3.WORKERS_PER_ARRAY_ELEMENT,
             e3.GPU_COUNT_PER_NODE,
-            sys.executable,
+            # Lux: the driver runs inside an Apptainer image, so srun must start workers through a
+            # host-side wrapper (apptainer exec --rocm ...), not the container's own interpreter.
+            os.environ.get("MATSIM_E3_MLIP_WORKER_PYTHON", sys.executable),
             hard_optimization_seconds=e3.HARD_OPTIMIZATION_SECONDS,
             round_deadline=started + e3.ROUND_SECONDS,
         )
