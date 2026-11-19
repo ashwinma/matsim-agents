@@ -93,6 +93,6 @@ loop:
 resources:
   preset: lux
   pools:
-    dft: {nodes: 8, devices: 8, max_concurrent: 16, share_with: [training, mlip]}
+    dft: {nodes: 8, devices: 8, max_concurrent: 8, share_with: [training, mlip]}
     training: {nodes: 1, devices: 1, share_with: [dft, mlip]}
     mlip: {nodes: 1, devices: 1, share_with: [dft, training]}
