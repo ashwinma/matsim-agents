@@ -165,7 +165,7 @@ if [[ "${IN_CONTAINER}" == 1 ]]; then
     --cpu-bind=none \
     --mpi=pmix \
     --export=NONE \
-    /bin/bash "${HOST_STEP}" "${PW_BIN}" "${INPUT}" "${WORK_DIR}" "${THREADS_PER_RANK}" "${QE76_GPUS_PER_NODE}"
+    /usr/bin/env "QE_MODULEPATH=${MODULEPATH:-}" /bin/bash "${HOST_STEP}" "${PW_BIN}" "${INPUT}" "${WORK_DIR}" "${THREADS_PER_RANK}" "${QE76_GPUS_PER_NODE}"
 fi
 
 echo "[qe-step] srun ${STEP_SHARE[*]} ${STEP_GPU_FLAGS[*]} -N ${NNODES} --ntasks-per-node=${RANKS_PER_NODE}" \

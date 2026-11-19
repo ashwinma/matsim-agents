@@ -4,10 +4,11 @@
 set -euo pipefail
 PW_BIN="$1"; INPUT="$2"; WORK_DIR="$3"; THREADS="$4"; GPUS="$5"
 export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
-export HOME="${HOME:-/ccs/home/$USER}"
-if ! command -v module >/dev/null 2>&1 && [[ -f /usr/share/lmod/lmod/init/bash ]]; then
-  source /usr/share/lmod/lmod/init/bash
-fi
+export HOME="${HOME:-/ccs/home/$(id -un)}"
+for init in /sw/lux/lmod/9.4.3/init/bash /usr/share/lmod/lmod/init/bash; do
+  if ! command -v module >/dev/null 2>&1 && [[ -f "${init}" ]]; then source "${init}"; fi
+done
+[[ -n "${QE_MODULEPATH:-}" ]] && export MODULEPATH="${QE_MODULEPATH}"
 module load "${ROCM_MODULE:-rocm/7.2.4}"
 module load "${AMD_LLVM_MODULE:-amd-llvm/7.2.4}"
 module load "${OPENMPI_MODULE:-openmpi/5.0.10}"

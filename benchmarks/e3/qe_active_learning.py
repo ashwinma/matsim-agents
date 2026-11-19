@@ -135,7 +135,10 @@ class E3Sampler:
             "--approve-compute",
         ]
         try:
-            e3._run_supervised_round(command, seconds=e3.ROUND_SECONDS)
+            if os.environ.get("MATSIM_E3_GEOMETRY_HANDOFF") == "1":
+                self._handoff_geometry(command, it_dir)
+            else:
+                e3._run_supervised_round(command, seconds=e3.ROUND_SECONDS)
         except subprocess.TimeoutExpired as error:
             e3._atomic_json(
                 it_dir / "geometry-deadline.json",
@@ -154,6 +157,28 @@ class E3Sampler:
         if receipt["status"] == "stopped_generation_exhausted":
             return []
         return self._candidates(it_dir, Path(receipt["tasks_path"]), receipt["active_model"])
+
+    @staticmethod
+    def _handoff_geometry(command: list[str], it_dir: Path) -> None:
+        """Run the geometry stage (LLM proposal + GPU workers) through a login-node watcher.
+
+        Lux: the LLM proxy accepts requests only from the login node, while the driver runs on a
+        compute node. The driver writes ``geometry-request.json`` and waits for
+        ``geometry-handoff-done.json``; scripts/e3_qe_geometry_watcher.py on the login node runs the
+        unchanged ``geometry`` command and records its exit status.
+        """
+        done = it_dir / "geometry-handoff-done.json"
+        done.unlink(missing_ok=True)
+        e3._atomic_json(it_dir / "geometry-request.json", {"command": command[1:]})
+        deadline = time.monotonic() + e3.ROUND_SECONDS + 600
+        while time.monotonic() < deadline:
+            if done.is_file():
+                status = json.loads(done.read_text())["returncode"]
+                if status:
+                    raise subprocess.CalledProcessError(status, command)
+                return
+            time.sleep(5)
+        raise subprocess.TimeoutExpired(command, e3.ROUND_SECONDS)
 
     def _run_geometry(self, cfg: ALConfig, iteration: int, it_dir: Path) -> None:
         assert cfg.mlip.mace is not None
