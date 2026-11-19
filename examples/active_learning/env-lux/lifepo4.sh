@@ -55,3 +55,7 @@ export E3_QE_TIMEOUT_SEC=14400  # 112-atom frames took 1.6-2.4 h
 
 # PILOT-ONLY (Max): ferromagnetic start is an approximation, not a ground-state claim; AFM/alternative spin states and the
 # final magnetic moments are still to be recorded. See PILOT-STATUS.md.
+
+# OPTIONAL alternative spin state (AFM etc.); unset = FM start above, signature unchanged. Fe indices are
+# 0-based among Fe atoms in the parent cell's order -- derive the up/down sets from the real structure.
+# export E3_QE_SPIN_CONFIGURATION='{name: afm-fe-layers, sites: [{symbol: Fe, indices: [0, 1, 2, 3, 4, 5, 6, 7], starting_magnetization: -0.3125}]}'

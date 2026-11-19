@@ -374,6 +374,18 @@ def main(argv: list[str] | None = None) -> int:
         # this adds the library provenance (SSSP version/source live in its README).
         "pseudopotential_library_readme": path_identity(cfg.dft.qe.pseudo_dir / "README.md"),
         "hubbard": {"u_eV": cfg.dft.qe.hubbard_u, "projector": cfg.dft.qe.hubbard_projector},
+        # Run policy for PBE vs PBE+U: labels are tagged with this and never mixed in one
+        # dataset. The projector is only physically active when a Hubbard U is set.
+        "dft_protocol": {
+            "tag": "pbe+u" if cfg.dft.qe.hubbard_u else "pbe",
+            "hubbard_u_eV": cfg.dft.qe.hubbard_u or None,
+            "hubbard_projector": cfg.dft.qe.hubbard_projector if cfg.dft.qe.hubbard_u else None,
+            "spin_configuration": (
+                cfg.dft.qe.spin_configuration.model_dump()
+                if cfg.dft.qe.spin_configuration
+                else None
+            ),
+        },
         "validation_identity": path_identity(cfg.trainer.validation_set),
         "elemental_reference_identity": path_identity(cfg.trainer.validation_reference_set),
         "objectives_identity": path_identity(e3.OBJECTIVES),

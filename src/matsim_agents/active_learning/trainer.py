@@ -50,6 +50,8 @@ class LabelledFrame:
     source_work_dir: str
     iteration: int
     backend: str  # "vasp" | "qe" — never mix backends in a single training set
+    # Backend extras (QE: final magnetization, dft_protocol_tag "pbe"/"pbe+u").
+    extra: dict | None = None
 
 
 def dft_results_to_frames(results: Iterable[DFTResult], iteration: int) -> list[LabelledFrame]:
@@ -67,6 +69,7 @@ def dft_results_to_frames(results: Iterable[DFTResult], iteration: int) -> list[
                 source_work_dir=r.work_dir,
                 iteration=iteration,
                 backend=r.backend,
+                extra=getattr(r, "extra", None),
             )
         )
     return frames
@@ -83,6 +86,20 @@ def append_frames_to_extxyz(frames: list[LabelledFrame], path: str | Path) -> in
             "Refusing to mix DFT energy references in one dataset: "
             f"incoming frames use {sorted(incoming_backends)}"
         )
+    incoming_tags = {
+        (frame.extra or {}).get("dft_protocol_tag") for frame in frames
+    } - {None}
+    if len(incoming_tags) > 1:
+        raise ValueError(
+            f"Refusing to mix DFT protocols in one dataset: incoming frames use {sorted(incoming_tags)}"
+        )
+    if path.exists() and path.stat().st_size and incoming_tags:
+        existing_tag = ase_read(str(path), index=0, format="extxyz").info.get("dft_protocol_tag")
+        if existing_tag is not None and existing_tag not in incoming_tags:
+            raise ValueError(
+                f"Refusing to append {sorted(incoming_tags)} labels to {path}; the existing "
+                f"dataset uses {existing_tag!r}. Never mix PBE and PBE+U in one dataset."
+            )
     if path.exists() and path.stat().st_size and incoming_backends:
         first = ase_read(str(path), index=0, format="extxyz")
         existing_backend = first.info.get("dft_backend")
@@ -105,6 +122,13 @@ def append_frames_to_extxyz(frames: list[LabelledFrame], path: str | Path) -> in
         atoms.info["al_iteration"] = fr.iteration
         atoms.info["source_work_dir"] = fr.source_work_dir
         atoms.info["dft_backend"] = fr.backend
+        if fr.extra:
+            if tag := fr.extra.get("dft_protocol_tag"):
+                atoms.info["dft_protocol_tag"] = tag
+            mag = fr.extra.get("magnetization") or {}
+            for key in ("total_magnetization", "absolute_magnetization"):
+                if key in mag:
+                    atoms.info[f"qe_{key}"] = mag[key]
         # Forces -> per-atom array
         if fr.forces_eV_per_A is not None:
             atoms.arrays["forces"] = fr.forces_eV_per_A

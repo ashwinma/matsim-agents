@@ -56,6 +56,8 @@ dft:
     # LiFePO4 sets a real mapping (env-lux/lifepo4.sh).
     hubbard_u: ${E3_QE_HUBBARD_U:?set an empty YAML mapping for no Hubbard U, or a mapping such as Fe-3d to 5.3 for LiFePO4}
     hubbard_projector: ${E3_QE_HUBBARD_PROJECTOR:-atomic}
+    # Optional AFM / alternative starting-spin pattern (env-lux/README spin section); null = off.
+    spin_configuration: ${E3_QE_SPIN_CONFIGURATION:-null}
     # Per-label pw.x timeout (QE labels only; the 1800 s/300 s E3 deadlines wrap geometry relaxation).
     timeout_sec: ${E3_QE_TIMEOUT_SEC:-1800}
 

@@ -80,6 +80,11 @@ def scientific_dft_payload(cfg: DFTConfig, elements: set[str]) -> dict[str, Any]
         "extra_electrons": block.extra_electrons,
         "hubbard_u": block.hubbard_u,
         "hubbard_projector": block.hubbard_projector if block.hubbard_u else None,
+        **(
+            {"spin_configuration": block.spin_configuration.model_dump()}
+            if block.spin_configuration is not None
+            else {}
+        ),
     }
 
 

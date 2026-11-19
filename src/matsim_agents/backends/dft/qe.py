@@ -17,8 +17,10 @@ case the backend.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -80,6 +82,8 @@ class QEBackend:
         if cfg.hubbard_u:
             s.hubbard_u = dict(cfg.hubbard_u)
         s.hubbard_projector = cfg.hubbard_projector
+        if cfg.spin_configuration is not None:
+            s.spin_configuration = cfg.spin_configuration.model_dump()
         return s
 
     # ----- run --------------------------------------------------------------
@@ -135,13 +139,21 @@ class QEBackend:
                 rc = 124
         elapsed = time.time() - t0
 
-        return _parse_pw_out(
+        result = _parse_pw_out(
             stdout_path=stdout_path,
             work_dir=spec.work_dir,
             return_code=rc,
             elapsed_sec=elapsed,
             backend_name=self.name,
         )
+        result.extra = {
+            **(result.extra or {}),
+            "dft_protocol_tag": qe_protocol_tag(cfg),
+            "timed_out": rc == 124,
+            "failure_reason": _failure_reason(result, rc),
+        }
+        _write_label_metadata(spec.work_dir, result, cfg)
+        return result
 
 
 # --------------------------------------------------------------------------- #
@@ -166,6 +178,7 @@ def _parse_pw_out(
     converged = False
     notes_list: list[str] = []
     n_atoms: int | None = None
+    extra: dict[str, Any] | None = None
 
     if not os.path.isfile(stdout_path) or os.path.getsize(stdout_path) == 0:
         notes_list.append("pw.out missing or empty")
@@ -204,6 +217,7 @@ def _parse_pw_out(
                     f"non-zero return_code ({return_code}) despite JOB DONE. "
                     "(known launcher quirk, e.g. Lux's Open MPI debug build)"
                 )
+            extra = parse_magnetization(tail)
             if "convergence NOT achieved" in tail:
                 converged = False
                 notes_list.append("SCF did not converge")
@@ -222,7 +236,92 @@ def _parse_pw_out(
         wall_time_sec=elapsed_sec,
         final_atoms=final_atoms,
         notes="; ".join(notes_list) if notes_list else None,
+        extra=extra,
     )
+
+
+_TOTAL_MAG = re.compile(r"total magnetization\s*=\s*(-?\d+\.\d+)\s*Bohr mag/cell")
+_ABS_MAG = re.compile(r"absolute magnetization\s*=\s*(-?\d+\.\d+)\s*Bohr mag/cell")
+_SITE_MAG = re.compile(
+    r"atom:\s*(\d+)\s+charge:\s*(-?\d+\.\d+)\s+magn:\s*(-?\d+\.\d+)"
+)
+
+
+def parse_magnetization(text: str) -> dict[str, Any] | None:
+    """Final-SCF magnetic moments from a pw.out (None for non-spin-polarised runs).
+
+    ``total``/``absolute`` are the last printed values in Bohr magnetons per cell
+    (QE prints them every SCF iteration); ``per_site`` is the last
+    "Magnetic moment per site" block (QE >= 6.x, collinear), one
+    ``{"atom", "charge", "magn"}`` entry per atom in input order, or absent.
+    """
+    total = _TOTAL_MAG.findall(text)
+    absolute = _ABS_MAG.findall(text)
+    if not total and not absolute:
+        return None
+    out: dict[str, Any] = {"unit": "Bohr mag/cell"}
+    if total:
+        out["total_magnetization"] = float(total[-1])
+    if absolute:
+        out["absolute_magnetization"] = float(absolute[-1])
+    start = text.rfind("Magnetic moment per site")
+    if start >= 0:
+        sites = []
+        for line in text[start:].splitlines()[1:]:
+            m = _SITE_MAG.search(line)
+            if m is None:
+                if sites:
+                    break
+                continue
+            sites.append(
+                {"atom": int(m[1]), "charge": float(m[2]), "magn": float(m[3])}
+            )
+        if sites:
+            out["per_site"] = sites
+    return {"magnetization": out}
+
+
+def qe_protocol_tag(cfg: QEBackendConfig) -> str:
+    """"pbe" or "pbe+u" -- never mix the two in one matched accuracy assessment."""
+    return "pbe+u" if cfg.hubbard_u else "pbe"
+
+
+def _failure_reason(result: DFTResult, return_code: int) -> str | None:
+    """Coarse numerical-qualification class of a label: None when it converged."""
+    if result.converged:
+        return None
+    if return_code == 124:
+        return "timeout"
+    notes = result.notes or ""
+    if "SCF did not converge" in notes:
+        return "scf_not_converged"
+    if "missing or empty" in notes:
+        return "no_output"
+    if "parse failed" in notes:
+        return "parse_failed"
+    return "other"
+
+
+def _write_label_metadata(work_dir: str, result: DFTResult, cfg: QEBackendConfig) -> None:
+    """Per-label ``label-metadata.json`` next to pw.out (read by the pilot report)."""
+    meta = {
+        "job_id": Path(work_dir).name,
+        "converged": result.converged,
+        "return_code": result.return_code,
+        "wall_time_sec": result.wall_time_sec,
+        "n_atoms": result.n_atoms,
+        "notes": result.notes,
+        "hubbard_u": dict(cfg.hubbard_u) if cfg.hubbard_u else None,
+        "hubbard_projector": cfg.hubbard_projector if cfg.hubbard_u else None,
+        "spin_configuration": (
+            cfg.spin_configuration.model_dump() if cfg.spin_configuration else None
+        ),
+        **(result.extra or {}),
+    }
+    try:
+        Path(work_dir, "label-metadata.json").write_text(json.dumps(meta, indent=2))
+    except OSError as exc:  # metadata is best-effort; never fail a label over it
+        log.warning("could not write label-metadata.json in %s: %s", work_dir, exc)
 
 
 # --------------------------------------------------------------------------- #

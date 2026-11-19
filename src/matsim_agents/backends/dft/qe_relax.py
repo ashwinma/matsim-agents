@@ -269,6 +269,9 @@ class QESettings:
     # wrote the template).
     hubbard_u: dict[str, float] | None = None
     hubbard_projector: str = "atomic"
+    # Optional alternative spin state (AFM etc.); None keeps the plain per-species
+    # layout byte-identical. See :func:`spin_species_layout` for the schema.
+    spin_configuration: dict[str, Any] | None = None
     extra_control: dict[str, Any] = field(default_factory=dict)
     extra_system: dict[str, Any] = field(default_factory=dict)
     extra_electrons: dict[str, Any] = field(default_factory=dict)
@@ -361,6 +364,66 @@ def resolve_pseudopotentials(symbols: list[str], pseudo_dir: str) -> dict[str, s
 # --------------------------------------------------------------------------- #
 
 
+# --------------------------------------------------------------------------- #
+# Alternative spin configurations                                             #
+# --------------------------------------------------------------------------- #
+
+
+def spin_species_layout(
+    symbols: list[str], spin: Mapping[str, Any], extra_system: Mapping[str, Any]
+) -> tuple[list[str], list[tuple[str, str, float]]]:
+    """Split species into spin sublattices for an AFM / alternative spin start.
+
+    ``spin`` schema (all keys optional)::
+
+        {"name": "afm-a",
+         "species": {"Co": 0.17},                    # starting_magnetization per symbol
+         "sites": [{"symbol": "Fe", "indices": [1, 3],   # 0-based among that symbol's atoms
+                    "starting_magnetization": -0.3125}]}
+
+    Atoms in a ``sites`` set become their own QE species ``<Sym><k>`` (k = 1, 2, ...
+    in listing order) so QE can give them a different ``starting_magnetization``;
+    the rest keep the plain symbol. Symbols not mentioned keep the value of
+    ``starting_magnetization(i)`` in ``extra_system`` (i = alphabetical species
+    index of the *unsplit* system), else 0.
+
+    Returns ``(per_atom_labels, [(label, symbol, starting_magnetization), ...])``
+    with rows ordered by symbol, plain label first.
+    """
+    unique = sorted(set(symbols))
+    species_over = dict(spin.get("species") or {})
+    default = {}
+    for i, sym in enumerate(unique, start=1):
+        if sym in species_over:
+            default[sym] = float(species_over[sym])
+        else:
+            default[sym] = float(extra_system.get(f"starting_magnetization({i})", 0.0))
+    labels = list(symbols)
+    rows: dict[str, list[tuple[str, float]]] = {sym: [] for sym in unique}
+    claimed: dict[str, set[int]] = {sym: set() for sym in unique}
+    for k, site in enumerate(spin.get("sites") or [], start=1):
+        sym = site["symbol"]
+        if sym not in rows:
+            raise ValueError(f"spin_configuration site set names absent element {sym!r}")
+        idx = [int(j) for j in site["indices"]]
+        positions = [n for n, s_ in enumerate(symbols) if s_ == sym]
+        if not idx or any(j < 0 or j >= len(positions) for j in idx):
+            raise ValueError(f"spin_configuration indices {idx} out of range for {sym}")
+        if claimed[sym] & set(idx) or len(set(idx)) != len(idx):
+            raise ValueError(f"spin_configuration site sets overlap for {sym}")
+        claimed[sym] |= set(idx)
+        label = f"{sym}{k}"
+        for j in idx:
+            labels[positions[j]] = label
+        rows[sym].append((label, float(site["starting_magnetization"])))
+    out: list[tuple[str, str, float]] = []
+    for sym in unique:
+        if any(lab == sym for lab in labels):
+            out.append((sym, sym, default[sym]))
+        out.extend((label, sym, mag) for label, mag in rows[sym])
+    return labels, out
+
+
 def write_pw_input(
     atoms,
     settings: QESettings,
@@ -388,6 +451,13 @@ def write_pw_input(
 
     nat = len(atoms)
     ntyp = len(symbols_unique)
+    atom_labels = atoms.get_chemical_symbols()
+    species_rows = [(sym, sym, None) for sym in symbols_unique]
+    if settings.spin_configuration:
+        atom_labels, species_rows = spin_species_layout(
+            atom_labels, settings.spin_configuration, settings.extra_system
+        )
+        ntyp = len(species_rows)
 
     control = {
         "calculation": f"'{settings.calculation}'",
@@ -415,6 +485,12 @@ def write_pw_input(
         system["smearing"] = f"'{settings.smearing}'"
         system["degauss"] = _fortran(settings.degauss_ry)
     system.update({k: _fortran(v) for k, v in settings.extra_system.items()})
+    if settings.spin_configuration:
+        for key in [k for k in system if k.startswith("starting_magnetization(")]:
+            del system[key]
+        system["nspin"] = "2"
+        for i, (_, _, mag) in enumerate(species_rows, start=1):
+            system[f"starting_magnetization({i})"] = _fortran(mag)
 
     electrons = {
         "conv_thr": _fortran(settings.conv_thr_ry),
@@ -440,9 +516,9 @@ def write_pw_input(
         parts.append(_namelist("CELL", cell))
 
     parts.append("ATOMIC_SPECIES")
-    for sym in symbols_unique:
+    for label, sym, _ in species_rows:
         mass = _ATOMIC_MASS.get(sym, 1.0)
-        parts.append(f"  {sym}  {mass:.4f}  {settings.pseudopotentials[sym]}")
+        parts.append(f"  {label}  {mass:.4f}  {settings.pseudopotentials[sym]}")
     parts.append("")
 
     parts.append("CELL_PARAMETERS angstrom")
@@ -451,7 +527,7 @@ def write_pw_input(
     parts.append("")
 
     parts.append("ATOMIC_POSITIONS angstrom")
-    for sym, pos in zip(atoms.get_chemical_symbols(), atoms.get_positions(), strict=True):
+    for sym, pos in zip(atom_labels, atoms.get_positions(), strict=True):
         parts.append(f"  {sym}  {pos[0]:18.10f} {pos[1]:18.10f} {pos[2]:18.10f}")
     parts.append("")
 
@@ -459,6 +535,13 @@ def write_pw_input(
     if settings.hubbard_u:
         parts.append(f"HUBBARD {{{settings.hubbard_projector}}}")
         for label, u_ev in settings.hubbard_u.items():
+            if settings.spin_configuration:
+                # Split sublattices are distinct QE species: apply U to each of them.
+                base, _, orbital = label.partition("-")
+                for sp_label, sym, _ in species_rows:
+                    if sym == base:
+                        parts.append(f"U {sp_label}-{orbital} {u_ev}")
+                continue
             parts.append(f"U {label} {u_ev}")
         parts.append("")
 

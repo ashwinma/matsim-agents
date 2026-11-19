@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Placement settings that moved to the ``resources:`` plan (docs/resource-dispatch.md).
 _MOVED_TO_RESOURCES = {
@@ -60,6 +60,36 @@ class VASPConfig(BaseModel):
     @classmethod
     def _reject_placement(cls, data: Any) -> Any:
         return reject_moved_placement_fields(data, "dft.vasp")
+
+
+class SpinSiteSet(BaseModel):
+    """Atoms of one element that start with their own magnetization (one sublattice)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    symbol: str
+    indices: list[int] = Field(
+        ..., min_length=1, description="0-based positions among this element's atoms."
+    )
+    starting_magnetization: float = Field(
+        ..., description="QE starting_magnetization: a fraction of Zval in [-1, 1]."
+    )
+
+
+class SpinConfiguration(BaseModel):
+    """Alternative spin state: per-species and/or per-site-set starting magnetization."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = "custom"
+    species: dict[str, float] = Field(default_factory=dict)
+    sites: list[SpinSiteSet] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _non_empty(self) -> SpinConfiguration:
+        if not self.species and not self.sites:
+            raise ValueError("spin_configuration needs 'species' and/or 'sites'")
+        return self
 
 
 class QEBackendConfig(BaseModel):
@@ -125,6 +155,14 @@ class QEBackendConfig(BaseModel):
         "atomic",
         description="HUBBARD card projector type (e.g. 'atomic', 'ortho-atomic').",
     )
+    spin_configuration: SpinConfiguration | None = Field(
+        None,
+        description=(
+            "Optional AFM / alternative starting-spin pattern (see SpinConfiguration). "
+            "None keeps the plain per-species starting_magnetization from extra_system. "
+            "Programmatic writer only (mutually exclusive with pw_template)."
+        ),
+    )
     extra_control: dict[str, Any] = Field(default_factory=dict)
     extra_system: dict[str, Any] = Field(default_factory=dict)
     extra_electrons: dict[str, Any] = Field(default_factory=dict)
@@ -144,6 +182,8 @@ class QEBackendConfig(BaseModel):
                 "lines you write into it yourself); hubbard_u is for the "
                 "programmatic writer only."
             )
+        if self.pw_template is not None and self.spin_configuration is not None:
+            raise ValueError("pw_template and spin_configuration are mutually exclusive.")
         return self
 
 

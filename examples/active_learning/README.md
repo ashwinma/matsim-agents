@@ -192,6 +192,25 @@ these against `sha256sum "$PSEUDO_DIR"/*.UPF` and copy the matching lines
 into that run's own `E3_QE_RUN_DIR`** — this copy step is not automated by
 the codebase today.
 
+**Alternative spin states (optional).** `E3_QE_SPIN_CONFIGURATION` (unset = off,
+default input and method signature unchanged) is a YAML mapping read into
+`dft.qe.spin_configuration`: `{name: afm-a, species: {Co: 0.17}, sites: [{symbol: Fe,
+indices: [1, 3], starting_magnetization: -0.3125}]}`. `indices` are 0-based positions
+among that element's atoms in the structure order; each site set becomes its own QE
+species (`Fe1`, `Fe2`, ...) and `starting_magnetization(i)` / Hubbard `U` lines are
+regenerated for all species (`nspin=2` forced; species not mentioned keep their
+`E3_QE_SYSTEM` value). Use it for AFM LiFePO4 or Cantor sublattice starts; derive the
+index sets from the real parent cell and check the per-site moments in the pilot report.
+It is part of the method signature only when set, and mutually exclusive with `pw_template`.
+
+**Pilot reporting.** `python scripts/e3_qe_pilot_report.py RUN_DIR [...]` writes
+`e3-qe-pilot-report.{md,json}`: per material and round, attempted vs successful labels,
+failures by class (`scf_not_converged`, `timeout`, `no_output`, ...), label wall and
+node-hours, final total/absolute magnetization (per-site moments stay in each label's
+`label-metadata.json` and the JSON), the DFT protocol tag (`pbe` / `pbe+u`) and Hubbard
+projector. Frames carry `dft_protocol_tag` and `qe_total/absolute_magnetization` in the
+training extxyz; appending PBE labels to a PBE+U dataset (or vice versa) is refused.
+
 **Cutoffs.** `ecutwfc_ry`/`ecutrho_ry` in each `env-lux/*.sh` are the max
 *real* SSSP-1.3.0-PBE-efficiency `cutoff_wfc`/`cutoff_rho` value (from the
 pseudopotential directory's own `README.md`/`SSSP_1.3.0_PBE_efficiency.json`,

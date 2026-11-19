@@ -70,3 +70,6 @@ export E3_QE_TIMEOUT_SEC=14400  # observed 46 min - 2.6 h per frame
 
 # PILOT-ONLY (Max): ferromagnetic start is an approximation, not a ground-state claim; AFM/alternative spin states and the
 # final magnetic moments are still to be recorded. See PILOT-STATUS.md.
+
+# OPTIONAL alternative spin state (e.g. AFM Cr/Mn sublattice); unset = FM start above, signature unchanged.
+# export E3_QE_SPIN_CONFIGURATION='{name: afm-cr-mn, sites: [{symbol: Cr, indices: [0, 2, 4], starting_magnetization: -0.2143}]}'

@@ -43,6 +43,8 @@ class DFTResult:
     wall_time_sec: float | None
     final_atoms: Atoms | None
     notes: str | None = None
+    # Backend-specific JSON-serialisable extras (QE: final magnetic moments).
+    extra: dict[str, Any] | None = None
 
 
 @dataclass
