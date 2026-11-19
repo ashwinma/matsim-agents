@@ -9,7 +9,7 @@ case "${1:?material}" in
   bcc_refractory) export E3_QE_KPOINT_SPACING='[0.235, 0.235, 0.235]' ;;  # reference: 2x2x2 on the 128-atom cell
   fcc_cantor) export E3_QE_KPOINT_SPACING='[0.2196, 0.2196, 0.4393]' ;;  # reference: 2x2x2 on the 128-atom cell (14.304x14.304x7.152 A)
   nb_ta_o) export E3_QE_KPOINT_SPACING='[0.1278, 0.1463, 0.1431]' ;;  # reference: 4x8x9 on the 15-atom pilot cell (KPOINTS.json, 0.15 1/A)
-  phosphorene) export E3_QE_KPOINT_SPACING='[0.272, 0.272, 0]' ;;  # reference: 7x5x1 on the 4-atom black cell, Gamma-only along vacuum
+  phosphorene) export E3_QE_KPOINT_SPACING='[0.07, 0.07, 0]' ;;  # converged scan (env-lux/KMESH-PHOSPHORENE.md); Max's 7x5x1 (=0.272) is NOT converged; Gamma-only along vacuum
   zn_formate_mof) export E3_QE_KPOINT_SPACING='[0.2122, 0.1722, 0.1732]' ;;  # reference: 3x2x2 on the COD 7205949 cell
   *) echo "unknown material $1" >&2; return 1 ;;
 esac
